@@ -1,0 +1,7 @@
+<Solution>
+  <Configurations>
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Project Path="CPON/CPON.vcxproj" Id="eaf81017-2727-4834-8f0f-34717e754d1f" />
+</Solution>
