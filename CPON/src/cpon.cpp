@@ -36,6 +36,12 @@ cpon_object &cpon::CreateObject(_In_ const std::string_view In_ObjectName)
 
 bool cpon::WriteToFile(_In_ const std::string_view In_FilePath)
 {
+	if (IsStringNpos(In_FilePath.find(".cpon")))
+	{
+		std::cerr << "ファイルの拡張子が不正です : " << In_FilePath << std::endl;
+		return false;
+	}
+
 	std::ofstream File(std::string(In_FilePath), std::ios::out | std::ios::trunc);
 	if (!File.is_open())
 	{
@@ -54,6 +60,8 @@ bool cpon::WriteToFile(_In_ const std::string_view In_FilePath)
 
 		// データブロックの書き込み
 		WriteDataBlocks(File, obj);
+
+		File << '\n';
 	}
 	File.close();
 	return true;
@@ -61,6 +69,12 @@ bool cpon::WriteToFile(_In_ const std::string_view In_FilePath)
 
 bool cpon::LoadFromFile(_In_ const std::string_view In_FilePath)
 {
+	if (IsStringNpos(In_FilePath.find(".cpon")))
+	{
+		std::cerr << "ファイルの拡張子が不正です : " << In_FilePath << std::endl;
+		return false;
+	}
+
 	std::ifstream File(std::string(In_FilePath), std::ios::in);
 	if (!File.is_open())
 	{
@@ -160,6 +174,12 @@ bool cpon::LoadFromFile(_In_ const std::string_view In_FilePath)
 				std::getline(File, line); // 空白行を飛ばすために読み取る
 			}
 		}
+		else
+		{
+			std::cerr << "データを読み取れませんでした : " << In_FilePath << std::endl;
+			return false;
+		}
+		std::getline(File, line); // 空白行を飛ばすために読み取る
 	}
 
 	File.close();

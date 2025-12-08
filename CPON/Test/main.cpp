@@ -27,15 +27,19 @@ int main()
 	std::cout << "Object Count: " << ObjCount << std::endl;
 	std::cout << "First Object Name: " << myCpon[0].GetObjectName() << std::endl;
 	std::cout << "First Object Data Count: " << myCpon[0].GetDataCount() << std::endl;
-	std::cout << "First Block Name: " << myCpon[0][0].GetValue<std::string>("Name") << std::endl;
-	std::cout << "First Block Age: " << myCpon[0][0].GetValue<int>("Age") << std::endl;
-	std::vector<int> Scores = myCpon[0][0].GetArray<int>("Scores");
+	std::cout << "First Block Name: " << myCpon[0][1].GetValue<std::string>("Name") << std::endl;
+	std::cout << "First Block Age: " << myCpon[0][1].GetValue<int>("Age") << std::endl;
+	std::vector<int> Scores = myCpon[0][1].GetArray<int>("Scores");
 	std::cout << "First Block Scores: ";
 	for (const auto &score : Scores)
 	{
 		std::cout << score << " ";
 	}
 	std::cout << std::endl;
+
+	myCpon[0][0].SetValue("Age", 31);
+
+	myCpon.WriteToFile("output_modified.cpon");
 
 	return 0;
 }
