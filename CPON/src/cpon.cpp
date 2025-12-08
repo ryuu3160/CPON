@@ -2,7 +2,7 @@
 	File: cpon.cpp
 	Summary: cpon(C++ Object Notation)のパーサークラス
 			 cponは、TONLやTOONを参考にした、C++向けのデータ記述言語です。
-	Author: AT13C192 01 青木雄一郎
+	Author: ryuu3160
 	Date: 2025/12/6 Sat PM 10:03:52 初回作成
 ===================================================================+*/
 
@@ -23,7 +23,24 @@ namespace
 
 cpon_object &cpon::operator[](_In_ int In_Index)
 {
+	if(m_Objects.size() <= static_cast<size_t>(In_Index) || In_Index < 0)
+	{
+		throw std::out_of_range("指定されたインデックスのオブジェクトが存在しません: " + std::to_string(In_Index));
+	}
 	return *(m_Objects[In_Index]);
+}
+
+cpon_object &cpon::operator[](_In_ std::string In_ObjectName)
+{
+	auto itr = std::find_if(m_Objects.begin(), m_Objects.end(),
+		[&In_ObjectName](const std::shared_ptr<cpon_object> &obj)
+		{
+			return obj->GetObjectName() == In_ObjectName;
+		});
+	if (itr != m_Objects.end())
+		return **itr;
+
+	throw std::out_of_range("指定された名前のオブジェクトが存在しません: " + In_ObjectName);
 }
 
 cpon_object &cpon::CreateObject(_In_ const std::string_view In_ObjectName)

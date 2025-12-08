@@ -1,0 +1,43 @@
+#ObjNum : 1
+Person[10]{Name:string,Age:int,Scores:array<int>}:
+  Name:Alice
+  Age:31
+  Scores:[4]85, 90, 95, 100
+
+  Name:Bob
+  Age:25
+  Scores:[3]80, 88, 92
+
+  Name:Bob
+  Age:25
+  Scores:[3]80, 88, 92
+
+  Name:Bob
+  Age:25
+  Scores:[3]80, 88, 92
+
+  Name:Bob
+  Age:25
+  Scores:[3]80, 88, 92
+
+  Name:Bob
+  Age:25
+  Scores:[3]80, 88, 92
+
+  Name:Bob
+  Age:25
+  Scores:[3]80, 88, 92
+
+  Name:Bob
+  Age:25
+  Scores:[3]80, 88, 92
+
+  Name:Bob
+  Age:25
+  Scores:[3]80, 88, 92
+
+  Name:Bob
+  Age:25
+  Scores:[3]80, 88, 92
+
+

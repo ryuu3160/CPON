@@ -1,7 +1,7 @@
 /*+===================================================================
 	File: cpon_object.hpp
 	Summary: cponのオブジェクトクラス
-	Author: AT13C192 01 青木雄一郎
+	Author: ryuu3160
 	Date: 2025/12/6 Sat PM 10:08:06 初回作成
 ===================================================================+*/
 #pragma once
@@ -51,7 +51,12 @@ public:
 		}
 		~cpon_block() = default;
 
-		template<typename T>
+		/// <summary>
+		/// 指定したキーに対応する値への参照を返します
+		/// </summary>
+		/// <param name="[In_Key]">検索するキー。std::string_view 型で渡します</param>
+		/// <returns>キーに対応する値への参照 (T&)。存在しないキーでは未定義動作になり得ます</returns>
+		template<TypeValue T>
 		T &GetValue(_In_ const std::string_view In_Key)
 		{
 			auto itr = m_BlockData.find(std::string(In_Key));
@@ -61,10 +66,6 @@ public:
 				{
 					return std::get<T>(std::get<DataValue>(itr->second));
 				}
-				else
-				{
-					throw std::bad_variant_access();
-				}
 			}
 			else
 			{
@@ -73,14 +74,16 @@ public:
 			}
 		}
 
-		template<typename T>
-		std::vector<T> GetArray(_In_ const std::string_view In_Key) const
+		template<TypeValue T>
+		std::vector<T> &GetArray(_In_ const std::string_view In_Key)
 		{
 			auto itr = m_BlockData.find(std::string(In_Key));
 			if (itr != m_BlockData.end())
 			{
 				if (std::holds_alternative<Array>(itr->second))
 				{
+					//return std::get<std::vector<T>>(std::get<Array>(itr->second));
+
 					const Array &array = std::get<Array>(itr->second);
 
 					std::vector<T> result;
@@ -105,7 +108,7 @@ public:
 			else
 			{
 				std::cerr << "キーが見つかりませんでした : " << In_Key << std::endl;
-				return {};
+				return *(std::vector<T> *)nullptr;
 			}
 		}
 
