@@ -1,11 +1,12 @@
 #ObjNum : 1
-Person[2]{Name:string,Age:int,Scores:array<int>}:
+Person[2]{Scores:array<int>,Address:object,Name:string,Age:int}:
+  Scores:[4]85, 90, 95, 100
+  Address:[1]{City:string}:
+    City:New York
   Name:Alice
   Age:30
-  Scores:[4]85, 90, 95, 100
 
+  Scores:[3]80, 88, 92
   Name:Bob
   Age:25
-  Scores:[3]80, 88, 92
-
 

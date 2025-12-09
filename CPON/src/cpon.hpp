@@ -80,18 +80,20 @@ private:
 
 	void WriteObjectHeader(_In_ std::ofstream &In_File, _In_ std::shared_ptr<cpon_object> In_Object);
 	void WriteDataBlocks(_In_ std::ofstream &In_File, _In_ std::shared_ptr<cpon_object> In_Object);
-	void WriteDataBlockValue(_In_ std::ofstream &In_File, _In_ const cpon_object::cpon_block::DataValue &In_Value);
-	void WriteDataBlockArray(_In_ std::ofstream &In_File, _In_ const cpon_object::cpon_block::Array &In_Array);
+	void WriteDataBlockValue(_In_ std::ofstream &In_File, _In_ const cpon_block::DataValue &In_Value);
+	void WriteDataBlockArray(_In_ std::ofstream &In_File, _In_ const cpon_block::Array &In_Array);
 
+	bool ReadObject(_In_ std::ifstream &In_File, _In_ std::string_view In_Line, _In_ cpon_object &In_Object, _In_ std::string_view In_FilePath);
 	std::string ReadObjectName(_In_ const std::string_view In_Line) const;
+	int ReadObjectDataCount(_In_ const std::string_view In_Line);
 	void ReadBlockInfo(_In_ const std::string_view In_Line, _Out_ int &Out_BlockNum, _Out_ std::string &Out_BlockHints);
 	void ReadHintInfo(_In_ const std::string_view In_Hint, _Out_ std::string &Out_HintID, _Out_ std::string &Out_HintType);
-	void ReadBlockValue(_In_ cpon_object::cpon_block &In_Block, _In_ const std::string_view In_Line, _In_ const std::string_view In_HintID, _In_ const std::string_view In_HintType);
-	void ReadBlockArray(_In_ cpon_object::cpon_block &In_Block, _In_ const std::string_view In_Line, _In_ const std::string_view In_HintID, _In_ const std::string_view In_HintType);
+	void ReadBlockValue(_In_ std::shared_ptr<cpon_block> In_Block, _In_ const std::string_view In_Line, _In_ const std::string_view In_HintID, _In_ const std::string_view In_HintType);
+	void ReadBlockArray(_In_ std::shared_ptr<cpon_block> In_Block, _In_ const std::string_view In_Line, _In_ const std::string_view In_HintID, _In_ const std::string_view In_HintType);
 
 	int CountElement(_In_ const std::string_view In_Data, _In_ char In_CountTarget) const noexcept;
 
-	cpon_object::cpon_block::Array CreateArrayByType(_In_ const std::string_view In_Type);
+	cpon_block::Array CreateArrayByType(_In_ const std::string_view In_Type);
 
 	template<typename T>
 	std::string ToStr(_In_ T In_Value)

@@ -120,83 +120,33 @@ bool cpon::LoadFromFile(_In_ const std::string_view In_FilePath)
 
 	// オブジェクトの個数を取得
 	int ObjCount;
-	std::string Num;
-	Num = m_FileHeader.erase(0,m_FileHeader.find(":") + 2);
-	ObjCount = FromStr<int>(Num);
+	ObjCount = ReadObjectDataCount(m_FileHeader);
 
 	for (int i = 0; i < ObjCount; ++i)
 	{
-		if (std::getline(File, line))
+		if(std::getline(File, line))
 		{
 			// オブジェクトヘッダの読み取り
-			if (IsStringNpos(line.find("}:")))
+			if(IsStringNpos(line.find("}:")))
 			{
 				std::cerr << "データ形式が不正です : " << In_FilePath << std::endl;
 				return false;
 			}
 
 			std::string ObjName;
-			std::string BlockHints;
-			int BlockNum = 0;
-			int BlockDataNum = 0;
 			ObjName = ReadObjectName(line);
-			ReadBlockInfo(line, BlockNum, BlockHints);
-			BlockDataNum = CountElement(BlockHints,':');
 
 			// オブジェクト作成
 			auto &Obj = CreateObject(ObjName);
 
-			// オブジェクトの読み取り
-			for (int BlockCount = 0; BlockCount < BlockNum; ++BlockCount)
-			{
-				// ブロックの作成
-				auto &block = Obj.CreateDataBlock();
-				std::string BlockHint = BlockHints;
-
-				// ブロックデータの読み取り
-				for (int DataCount = 0; DataCount < BlockDataNum; ++DataCount)
-				{
-					std::string HintID;
-					std::string HintType;
-					ReadHintInfo(BlockHint, HintID, HintType);
-
-					if (std::getline(File, line))
-					{
-						auto IDPos = line.find(HintID);
-
-						if (IsStringNpos(IDPos))
-						{
-							std::cerr << "データ形式が不正です : " << In_FilePath << std::endl;
-							return false;
-						}
-
-						line = line.erase(0, IDPos + HintID.size() + 1);
-
-						if (IsStringNpos(HintType.find("array<")))
-						{
-							ReadBlockValue(block, line, HintID, HintType);
-						}
-						else
-						{
-							ReadBlockArray(block, line, HintID, HintType);
-						}
-					}
-					else
-					{
-						std::cerr << "データを読み取れませんでした : " << In_FilePath << std::endl;
-						return false;
-					}
-					BlockHint = BlockHint.erase(0, BlockHint.find(",") + 1);
-				}
-				std::getline(File, line); // 空白行を飛ばすために読み取る
-			}
+			if(ReadObject(File, line, Obj, In_FilePath))
+				return false;
 		}
 		else
 		{
 			std::cerr << "データを読み取れませんでした : " << In_FilePath << std::endl;
 			return false;
 		}
-		std::getline(File, line); // 空白行を飛ばすために読み取る
 	}
 
 	File.close();
@@ -218,34 +168,56 @@ void cpon::WriteObjectHeader(_In_ std::ofstream &In_File, _In_ std::shared_ptr<c
 
 void cpon::WriteDataBlocks(_In_ std::ofstream &In_File, _In_ std::shared_ptr<cpon_object> In_Object)
 {
-	for (const auto &block : In_Object->GetDataBlocks())
+	auto Blocks = In_Object->GetDataBlocks();
+	std::string Hints = In_Object->GetBlockHints();
+	int BlockDataCount = CountElement(Hints, ':');
+
+	for (int i = 0; i < Blocks.size();++i)
 	{
-		for (const auto &data : block.m_BlockData)
+		std::string Hint = Hints;
+		for (int j = 0; j < BlockDataCount; ++j)
 		{
-			In_File << "  " << data.first << ":";
-			if (std::holds_alternative<cpon_object::cpon_block::DataValue>(data.second))
+			std::string Key = Hint;
+			size_t pos = Key.find(",");
+			if(!IsStringNpos(pos))
+				Key = Key.erase(Key.find(","));
+			Key = Key.erase(Key.find(":"));
+
+			// ヒント情報を進める
+			pos = Hint.find(",");
+			if(!IsStringNpos(pos))
+				Hint = Hint.erase(0, Hint.find(",") + 1);
+
+			auto data = Blocks[i]->m_BlockData.find(Key);
+			if(data == Blocks[i]->m_BlockData.end())
+				continue;
+
+			for(int indent = 0; indent < Blocks[i]->m_NestedLevel; ++indent)
+				In_File << "  ";
+
+			In_File << data->first << ":";
+			if (std::holds_alternative<cpon_block::DataValue>(data->second))
 			{
-				const auto &value = std::get<cpon_object::cpon_block::DataValue>(data.second);
+				const auto &value = std::get<cpon_block::DataValue>(data->second);
 				WriteDataBlockValue(In_File, value);
 			}
-			else if (std::holds_alternative<cpon_object::cpon_block::Array>(data.second))
+			else if (std::holds_alternative<cpon_block::Array>(data->second))
 			{
-				const auto &array = std::get<cpon_object::cpon_block::Array>(data.second);
+				const auto &array = std::get<cpon_block::Array>(data->second);
 				WriteDataBlockArray(In_File, array);
 			}
-			else if(std::holds_alternative<cpon_object::cpon_block::Object>(data.second))
+			else if(std::holds_alternative<cpon_block::Object>(data->second))
 			{
-				WriteObjectHeader(In_File, std::get<cpon_object::cpon_block::Object>(data.second));
-				WriteDataBlocks(In_File, std::get<cpon_object::cpon_block::Object>(data.second));
+				WriteObjectHeader(In_File, std::get<cpon_block::Object>(data->second));
+				WriteDataBlocks(In_File, std::get<cpon_block::Object>(data->second));
 			}
-			In_File << "\n";
 		}
-
-		In_File << "\n";
+		if(i < Blocks.size() - 1)
+			In_File << "\n";
 	}
 }
 
-void cpon::WriteDataBlockValue(_In_ std::ofstream &In_File, _In_ const cpon_object::cpon_block::DataValue &In_Value)
+void cpon::WriteDataBlockValue(_In_ std::ofstream &In_File, _In_ const cpon_block::DataValue &In_Value)
 {
 	if (std::holds_alternative<std::string>(In_Value))
 		In_File << std::get<std::string>(In_Value);
@@ -259,9 +231,10 @@ void cpon::WriteDataBlockValue(_In_ std::ofstream &In_File, _In_ const cpon_obje
 		In_File << std::get<double>(In_Value);
 	else if (std::holds_alternative<bool>(In_Value))
 		In_File << (std::get<bool>(In_Value) ? "true" : "false");
+	In_File << "\n";
 }
 
-void cpon::WriteDataBlockArray(_In_ std::ofstream &In_File, _In_ const cpon_object::cpon_block::Array &In_Array)
+void cpon::WriteDataBlockArray(_In_ std::ofstream &In_File, _In_ const cpon_block::Array &In_Array)
 {
 	size_t ArraySize = std::visit([](auto &&arg) -> size_t {
 		return arg.size();
@@ -270,7 +243,7 @@ void cpon::WriteDataBlockArray(_In_ std::ofstream &In_File, _In_ const cpon_obje
 	In_File << "[" << ArraySize << "]";
 	for (size_t i = 0; i < ArraySize; ++i)
 	{
-		auto opt = std::visit(cpon_object::cpon_block::GetElementAsStringVisitor{i}, In_Array);
+		auto opt = std::visit(cpon_block::GetElementAsStringVisitor{i}, In_Array);
 
 		if (!opt.has_value())
 			continue;
@@ -280,6 +253,89 @@ void cpon::WriteDataBlockArray(_In_ std::ofstream &In_File, _In_ const cpon_obje
 		if (i < ArraySize - 1)
 			In_File << ", ";
 	}
+	In_File << "\n";
+}
+
+bool cpon::ReadObject(_In_ std::ifstream &In_File, _In_ std::string_view In_Line, _In_ cpon_object& In_Object, _In_ std::string_view In_FilePath)
+{
+	std::string line = std::string(In_Line);
+
+	std::string BlockHints;
+	int BlockNum = 0;
+	int BlockDataNum = 0;
+
+	ReadBlockInfo(line, BlockNum, BlockHints);
+	BlockDataNum = CountElement(BlockHints, ':');
+
+	// オブジェクトデータの読み取り
+	for(int BlockCount = 0; BlockCount < BlockNum; ++BlockCount)
+	{
+		// ブロックの作成
+		auto block = In_Object.CreateDataBlock();
+		std::string BlockHint = BlockHints;
+
+		// ブロックデータの読み取り
+		for(int DataCount = 0; DataCount < BlockDataNum; ++DataCount)
+		{
+			std::string HintID;
+			std::string HintType;
+			ReadHintInfo(BlockHint, HintID, HintType);
+
+			if(std::getline(In_File, line))
+			{
+				auto IDPos = line.find(HintID);
+
+				// データが存在しないので、ヒントを更新して再検索
+				if(IsStringNpos(IDPos))
+				{
+					++DataCount;
+					for(; DataCount < BlockDataNum; ++DataCount)
+					{
+						BlockHint = BlockHint.erase(0, BlockHint.find(",") + 1);
+						ReadHintInfo(BlockHint, HintID, HintType);
+						IDPos = line.find(HintID);
+						if(!IsStringNpos(IDPos))
+							break;
+					}
+					// 最後まで見つからなかった場合、異常終了
+					if(IsStringNpos(IDPos))
+					{
+						std::cerr << "データを読み取れませんでした : " << In_FilePath << std::endl;
+						return false;
+					}
+				}
+
+				line = line.erase(0, IDPos + HintID.size() + 1);
+
+				if(!IsStringNpos(HintType.find("array<")))
+				{
+					ReadBlockArray(block, line, HintID, HintType);
+				}
+				else if(!IsStringNpos(HintType.find("object")))
+				{
+					auto Obj = block->CreateObject(HintID);
+					// オブジェクト型の読み取り
+					if(!ReadObject(In_File,line, *Obj, In_FilePath))
+						return false;
+				}
+				else
+				{
+					ReadBlockValue(block, line, HintID, HintType);
+				}
+			}
+			else
+			{
+				std::cerr << "データを読み取れませんでした : " << In_FilePath << std::endl;
+				return false;
+			}
+			BlockHint = BlockHint.erase(0, BlockHint.find(",") + 1);
+		}
+		if(In_Object.m_NestedLevel == 0)
+			std::getline(In_File, line); // 空白行を飛ばすために読み取る
+	}
+	if(In_Object.m_NestedLevel == 0)
+		std::getline(In_File, line); // 空白行を飛ばすために読み取る
+	return true;
 }
 
 std::string cpon::ReadObjectName(_In_ const std::string_view In_Line) const
@@ -287,6 +343,15 @@ std::string cpon::ReadObjectName(_In_ const std::string_view In_Line) const
 	std::string Line = std::string(In_Line);
 	std::string ObjName = Line;
 	return ObjName.erase(ObjName.find("["));
+}
+
+int cpon::ReadObjectDataCount(_In_ const std::string_view In_Line)
+{
+	int ObjCount;
+	std::string NumStr = std::string(In_Line);
+	NumStr = NumStr.erase(0, NumStr.find(":") + 2);
+	ObjCount = FromStr<int>(NumStr);
+	return ObjCount;
 }
 
 void cpon::ReadBlockInfo(_In_ const std::string_view In_Line, _Out_ int &Out_BlockNum, _Out_ std::string &Out_BlockHints)
@@ -314,28 +379,28 @@ void cpon::ReadHintInfo(_In_ const std::string_view In_Hint, _Out_ std::string &
 	Out_HintType = HintType.erase(0, HintType.find(":") + 1);
 }
 
-void cpon::ReadBlockValue(_In_ cpon_object::cpon_block &In_Block, _In_ const std::string_view In_Line, _In_ const std::string_view In_HintID, _In_ const std::string_view In_HintType)
+void cpon::ReadBlockValue(_In_ std::shared_ptr<cpon_block> In_Block, _In_ const std::string_view In_Line, _In_ const std::string_view In_HintID, _In_ const std::string_view In_HintType)
 {
 	if (In_HintType == "string")
-		In_Block.SetValue(In_HintID, In_Line.data());
+		In_Block->SetValue(In_HintID, In_Line.data());
 	else if (In_HintType == "int")
-		In_Block.SetValue(In_HintID, FromStr<int>(In_Line));
+		In_Block->SetValue(In_HintID, FromStr<int>(In_Line));
 	else if (In_HintType == "uint")
-		In_Block.SetValue(In_HintID, FromStr<unsigned int>(In_Line));
+		In_Block->SetValue(In_HintID, FromStr<unsigned int>(In_Line));
 	else if (In_HintType == "float")
-		In_Block.SetValue(In_HintID, FromStr<float>(In_Line));
+		In_Block->SetValue(In_HintID, FromStr<float>(In_Line));
 	else if (In_HintType == "double")
-		In_Block.SetValue(In_HintID, FromStr<double>(In_Line));
+		In_Block->SetValue(In_HintID, FromStr<double>(In_Line));
 	else if (In_HintType == "bool")
 	{
 		if (!IsStringNpos(In_Line.find("true")))
-			In_Block.SetValue(In_HintID, true);
+			In_Block->SetValue(In_HintID, true);
 		else
-			In_Block.SetValue(In_HintID, false);
+			In_Block->SetValue(In_HintID, false);
 	}
 }
 
-void cpon::ReadBlockArray(_In_ cpon_object::cpon_block &In_Block, _In_ const std::string_view In_Line, _In_ const std::string_view In_HintID, _In_ const std::string_view In_HintType)
+void cpon::ReadBlockArray(_In_ std::shared_ptr<cpon_block> In_Block, _In_ const std::string_view In_Line, _In_ const std::string_view In_HintID, _In_ const std::string_view In_HintType)
 {
 	std::string Line = std::string(In_Line);
 	std::string ArrayType = std::string(In_HintType);
@@ -346,7 +411,7 @@ void cpon::ReadBlockArray(_In_ cpon_object::cpon_block &In_Block, _In_ const std
 	ArrayCountStr = ArrayCountStr.erase(ArrayCountStr.find("]"));
 	ArrayCount = FromStr<int>(ArrayCountStr);
 
-	cpon_object::cpon_block::Array array = CreateArrayByType(ArrayType);
+	cpon_block::Array array = CreateArrayByType(ArrayType);
 	for (int i = 0; i < ArrayCount; ++i)
 	{
 		std::string ArrayValue = ArrayValues;
@@ -381,7 +446,7 @@ void cpon::ReadBlockArray(_In_ cpon_object::cpon_block &In_Block, _In_ const std
 		ArrayValues = ArrayValues.erase(0, CommaPos + 1);
 	}
 
-	In_Block.CreateArray(In_HintID, array);
+	In_Block->CreateArray(In_HintID, array);
 }
 
 int cpon::CountElement(_In_ const std::string_view In_Data, _In_ char In_CountTarget) const noexcept
@@ -397,19 +462,19 @@ int cpon::CountElement(_In_ const std::string_view In_Data, _In_ char In_CountTa
 	return Count;
 }
 
-cpon_object::cpon_block::Array cpon::CreateArrayByType(_In_ const std::string_view In_Type)
+cpon_block::Array cpon::CreateArrayByType(_In_ const std::string_view In_Type)
 {
 	if(In_Type == "<string>")
-		return cpon_object::cpon_block::Array(std::vector<std::string>{});
+		return cpon_block::Array(std::vector<std::string>{});
 	 else if(In_Type == "<int>")
-		return cpon_object::cpon_block::Array(std::vector<int>{});
+		return cpon_block::Array(std::vector<int>{});
 	 else if(In_Type == "<uint>")
-		return cpon_object::cpon_block::Array(std::vector<unsigned int>{});
+		return cpon_block::Array(std::vector<unsigned int>{});
 	 else if(In_Type == "<float>")
-		return cpon_object::cpon_block::Array(std::vector<float>{});
+		return cpon_block::Array(std::vector<float>{});
 	 else if(In_Type == "<double>")
-		return cpon_object::cpon_block::Array(std::vector<double>{});
+		return cpon_block::Array(std::vector<double>{});
 	 else if(In_Type == "<bool>")
-		return cpon_object::cpon_block::Array(std::vector<bool>{});
-	return cpon_object::cpon_block::Array(std::vector<std::string>{});
+		return cpon_block::Array(std::vector<bool>{});
+	return cpon_block::Array(std::vector<std::string>{});
 }

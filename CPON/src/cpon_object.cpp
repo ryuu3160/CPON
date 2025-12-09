@@ -10,21 +10,7 @@
 // ==============================
 #include "cpon_object.hpp"
 
-cpon_object::cpon_block &cpon_object::operator[](_In_ int In_Index)
-{
-	if (m_Data.empty())
-	{
-		m_Data.emplace_back(m_BlockHints);
-		++m_DataCount;
-		return m_Data.back();
-	}
-
-	if (m_Data.size() <= static_cast<size_t>(In_Index))
-		return m_Data.back();
-	return m_Data[In_Index];
-}
-
-void cpon_object::cpon_block::CreateHints(_In_ const std::string_view In_TagName, _In_ DataItem In_Data)
+void cpon_block::CreateHints(_In_ const std::string_view In_TagName, _In_ DataItem In_Data)
 {
 	if (m_BlockHintsRef.find(std::string(In_TagName) + ":") != std::string::npos)
 		return;
@@ -74,4 +60,19 @@ void cpon_object::cpon_block::CreateHints(_In_ const std::string_view In_TagName
 	{
 		m_BlockHintsRef += "object";
 	}
+}
+
+std::shared_ptr<cpon_block> &cpon_object::operator[](_In_ int In_Index)
+{
+	if(m_Data.empty())
+	{
+		auto newBlock = std::make_shared<cpon_block>(m_BlockHints);
+		m_Data.push_back(newBlock);
+		++m_DataCount;
+		return m_Data.back();
+	}
+
+	if(m_Data.size() <= static_cast<size_t>(In_Index))
+		return m_Data.back();
+	return m_Data[In_Index];
 }

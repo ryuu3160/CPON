@@ -7,24 +7,27 @@ int main()
 	cpon myCpon;
 
 	auto &obj1 = myCpon.CreateObject("Person");
-	auto &block1 = obj1.CreateDataBlock();
-	block1.SetValue("Name", std::string("Alice"));
-	block1.SetValue("Age", 30);
-	auto array1 = block1.CreateArray("Scores", std::vector<int>{85, 90, 95});
+	auto block1 = obj1.CreateDataBlock();
+	
+	auto array1 = block1->CreateArray("Scores", std::vector<int>{85, 90, 95});
+	auto obj2 = block1->CreateObject("Address");
 	array1->push_back(100); // í«â¡Ç≈ÉXÉRÉAÇí«â¡
-	auto &block2 = obj1.CreateDataBlock();
-	block2.SetValue("Name", std::string("Bob"));
-	block2.SetValue("Age", 25);
-	block2.CreateArray("Scores", std::vector<int>{80, 88, 92});
-	auto obj2 = block1.CreateObject("Address");
-
+	auto block2 = obj1.CreateDataBlock();
+	block2->SetValue("Name", std::string("Bob"));
+	block2->SetValue("Age", 25);
+	block2->CreateArray("Scores", std::vector<int>{80, 88, 92});
+	
+	auto obj2b = obj2->CreateDataBlock();
+	obj2b->SetValue("City", std::string("New York"));
+	block1->SetValue("Name", std::string("Alice"));
+	block1->SetValue("Age", 30);
 
 	myCpon.WriteToFile("output.cpon");
 
 
-	/*myCpon.LoadFromFile("output.cpon");
+	myCpon.LoadFromFile("output.cpon");
 
-	int ObjCount = myCpon.GetObjectCount();
+	/*int ObjCount = myCpon.GetObjectCount();
 	std::string ObjName = myCpon[0].GetObjectName();
 	std::cout << "Object Count: " << ObjCount << std::endl;
 	std::cout << "First Object Name: " << ObjName << std::endl;
@@ -40,9 +43,9 @@ int main()
 	std::cout << std::endl;
 
 	myCpon[ObjName][0].SetValue("Age", 31);
-	Scores.push_back(99);
+	Scores.push_back(99);*/
 
-	myCpon.WriteToFile("output_modified.cpon");*/
+	myCpon.WriteToFile("output_modified.cpon");
 
 	return 0;
 }
