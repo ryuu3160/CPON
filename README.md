@@ -16,20 +16,26 @@
 
 ### オブジェクトヘッダ
 ```cpon
-ObjectName[N]{Id:int,Name:string,Roles:array<string>}:
+ObjectName[N]{Id:int,Name:string,Roles:array<string>,Contact:object}:
 ```
 
 ### 全体構造
 ```cpon
 #ObjNum : 2
-Users[2]{Id:int,Name:string,Roles:array<string>}:
+Users[2]{Id:int,Name:string,Roles:array<string>,Contact:object}:
   Id:1
   Name:Alice
   Roles:[2]editor, user
+  Contact[1]{Email:string,Phone:string}:
+    Email:alice@example.com
+    Phone:+123456789
 
   Id:2
   Name:Bob
   Roles:[3]admin, editor, user
+  Contact[1]{Email:string,Phone:string}:
+    Email:bob@example.com
+    Phone:+123456789
 
 RoleList[3]{Name:string,Level:int}:
   Name:admin
