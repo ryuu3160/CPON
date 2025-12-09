@@ -10,13 +10,6 @@
 // ==============================
 #include "cpon_object.hpp"
 
-// ==============================
-//	íËêîíËã`
-// ==============================
-namespace
-{
-}
-
 cpon_object::cpon_block &cpon_object::operator[](_In_ int In_Index)
 {
 	if (m_Data.empty())
@@ -76,5 +69,9 @@ void cpon_object::cpon_block::CreateHints(_In_ const std::string_view In_TagName
 			m_BlockHintsRef += "<bool>";
 		else
 			m_BlockHintsRef += "<unknown>";
+	}
+	else if (std::holds_alternative<cpon_block::Object>(In_Data))
+	{
+		m_BlockHintsRef += "object";
 	}
 }

@@ -233,6 +233,11 @@ void cpon::WriteDataBlocks(_In_ std::ofstream &In_File, _In_ std::shared_ptr<cpo
 				const auto &array = std::get<cpon_object::cpon_block::Array>(data.second);
 				WriteDataBlockArray(In_File, array);
 			}
+			else if(std::holds_alternative<cpon_object::cpon_block::Object>(data.second))
+			{
+				WriteObjectHeader(In_File, std::get<cpon_object::cpon_block::Object>(data.second));
+				WriteDataBlocks(In_File, std::get<cpon_object::cpon_block::Object>(data.second));
+			}
 			In_File << "\n";
 		}
 
@@ -392,7 +397,7 @@ int cpon::CountElement(_In_ const std::string_view In_Data, _In_ char In_CountTa
 	return Count;
 }
 
-cpon_object::cpon_block::Array cpon::CreateArrayByType(const std::string_view In_Type)
+cpon_object::cpon_block::Array cpon::CreateArrayByType(_In_ const std::string_view In_Type)
 {
 	if(In_Type == "<string>")
 		return cpon_object::cpon_block::Array(std::vector<std::string>{});

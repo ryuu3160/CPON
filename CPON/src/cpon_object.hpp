@@ -42,8 +42,9 @@ public:
 	public:
 		using DataValue = std::variant<std::string, int, unsigned int, float, double, bool>;
 		using Array = std::variant<std::vector<std::string>, std::vector<int>, std::vector<unsigned int>, std::vector<float>, std::vector<double>, std::vector<bool>>;
+		using Object = std::shared_ptr<cpon_object>;
 
-		using DataItem = std::variant<DataValue, Array>;
+		using DataItem = std::variant<DataValue, Array, Object>;
 
 	public:
 		cpon_block(_In_ std::string &In_BlockHints)
@@ -152,6 +153,35 @@ public:
 			m_BlockData[std::string(In_Key)] = In_Values;
 			CreateHints(In_Key, In_Values);
 			return &(std::get<Array>(m_BlockData[std::string(In_Key)]));
+		}
+
+		Object CreateObject(_In_ const std::string_view In_Key)
+		{
+			auto obj = std::make_shared<cpon_object>();
+			m_BlockData[std::string(In_Key)] = obj;
+			CreateHints(In_Key, obj);
+			return obj;
+		}
+
+		Object GetObject(_In_ const std::string_view In_Key)
+		{
+			auto itr = m_BlockData.find(std::string(In_Key));
+			if (itr != m_BlockData.end())
+			{
+				if (std::holds_alternative<Object>(itr->second))
+				{
+					return std::get<Object>(itr->second);
+				}
+				else
+				{
+					throw std::bad_variant_access();
+				}
+			}
+			else
+			{
+				std::cerr << "ƒL[‚ªŒ©‚Â‚©‚è‚Ü‚¹‚ñ‚Å‚µ‚½ : " << In_Key << std::endl;
+				return nullptr;
+			}
 		}
 
 	private:

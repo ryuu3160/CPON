@@ -16,12 +16,13 @@ int main()
 	block2.SetValue("Name", std::string("Bob"));
 	block2.SetValue("Age", 25);
 	block2.CreateArray("Scores", std::vector<int>{80, 88, 92});
+	auto obj2 = block1.CreateObject("Address");
 
 
 	myCpon.WriteToFile("output.cpon");
 
 
-	myCpon.LoadFromFile("output.cpon");
+	/*myCpon.LoadFromFile("output.cpon");
 
 	int ObjCount = myCpon.GetObjectCount();
 	std::string ObjName = myCpon[0].GetObjectName();
@@ -41,7 +42,7 @@ int main()
 	myCpon[ObjName][0].SetValue("Age", 31);
 	Scores.push_back(99);
 
-	myCpon.WriteToFile("output_modified.cpon");
+	myCpon.WriteToFile("output_modified.cpon");*/
 
 	return 0;
 }
