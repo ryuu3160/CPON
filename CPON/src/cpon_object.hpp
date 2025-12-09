@@ -109,17 +109,12 @@ public:
 		}
 	}
 
-	void SetValue(_In_ const std::string_view In_Key, _In_ const DataItem &In_Value)
-	{
-		auto result = m_BlockData.try_emplace(std::string(In_Key), In_Value);
-		if(!result.second)
-		{
-			m_BlockData[std::string(In_Key)] = In_Value;
-			return;
-		}
-
-		CreateHints(In_Key, In_Value);
-	}
+	/// <summary>
+	/// 指定したキーに対応する値を設定します
+	/// </summary>
+	/// <param name="[In_Key]">値を設定する対象のキー</param>
+	/// <param name="[In_Value]">設定する値</param>
+	void SetValue(_In_ const std::string_view In_Key, _In_ const DataItem &In_Value);
 
 	template<TypeValue T>
 	std::vector<T> *CreateArray(_In_ const std::string_view In_Key, _In_ T In_Value, _In_ const size_t In_Count = 1)
@@ -152,58 +147,37 @@ public:
 		return &(std::get<std::vector<T>>(std::get<Array>(m_BlockData[std::string(In_Key)])));
 	}
 
-	Array *CreateArray(_In_ const std::string_view In_Key, _In_ const Array &In_Values)
-	{
-		auto res = m_BlockData.try_emplace(std::string(In_Key), In_Values);
-		if(!res.second)
-			m_BlockData[std::string(In_Key)] = In_Values;
-		else
-			CreateHints(In_Key, In_Values);
-		return &(std::get<Array>(m_BlockData[std::string(In_Key)]));
-	}
+	/// <summary>
+	/// 既に存在する配列を使用して、新しいArrayデータを作成します
+	/// </summary>
+	/// <param name="[In_Key]">配列に関連付けるキー</param>
+	/// <param name="[In_Values]">使用する配列データ</param>
+	/// <returns>作成されたArrayへのポインタ</returns>
+	Array *CreateArray(_In_ const std::string_view In_Key, _In_ const Array &In_Array);
 
-	Object CreateObject(_In_ const std::string_view In_Key)
-	{
-		Object obj = std::make_shared<cpon_object>(m_NestedLevel);
-		auto res = this->m_BlockData.try_emplace(std::string(In_Key), obj);
-		if(!res.second)
-			m_BlockData[std::string(In_Key)] = obj;
-		else
-			CreateHints(In_Key, obj);
-		return obj;
-	}
+	/// <summary>
+	/// 指定されたキーに基づいてObjectを作成して返します
+	/// </summary>
+	/// <param name="[In_Key]">オブジェクト名</param>
+	/// <returns>作成されたObjectへのシェアポインタ</returns>
+	Object CreateObject(_In_ const std::string_view In_Key);
 
-	Object CreateObject(_In_ const std::string_view In_Key, _In_ Object In_Object)
-	{
-		auto res = this->m_BlockData.try_emplace(std::string(In_Key), In_Object);
-		In_Object->m_NestedLevel = this->m_NestedLevel;
-		if(!res.second)
-			m_BlockData[std::string(In_Key)] = In_Object;
-		else
-			CreateHints(In_Key, In_Object);
-		return In_Object;
-	}
+	/// <summary>
+	/// 既存のオブジェクトをブロックデータに追加します
+	/// </summary>
+	/// <param name="[In_Object]">追加するオブジェクト（入力パラメータ）</param>
+	/// <returns>追加されたオブジェクトを返します。</returns>
+	Object AddObject(_In_ Object In_Object);
 
-	Object GetObject(_In_ const std::string_view In_Key)
-	{
-		auto itr = m_BlockData.find(std::string(In_Key));
-		if(itr != m_BlockData.end())
-		{
-			if(std::holds_alternative<Object>(itr->second))
-			{
-				return std::get<Object>(itr->second);
-			}
-			else
-			{
-				throw std::bad_variant_access();
-			}
-		}
-		else
-		{
-			std::cerr << "キーが見つかりませんでした : " << In_Key << std::endl;
-			return nullptr;
-		}
-	}
+	/// <summary>
+	/// 指定されたキーに対応するオブジェクトを取得します
+	/// </summary>
+	/// <param name="[In_Key]">取得するオブジェクトを識別するキー</param>
+	/// <returns>
+	/// <para>指定したキーに対応するObjectを値で返します</para>
+	/// <para>※キーが見つからない場合の挙動は実装依存です</para>
+	/// </returns>
+	Object GetObject(_In_ const std::string_view In_Key);
 
 private:
 	struct GetElementAsStringVisitor
@@ -276,28 +250,33 @@ class cpon_object
 	friend class cpon;
 	friend class cpon_block;
 public:
-
-public:
 	cpon_object(_In_ int In_NestedLevel = 0)
 		: m_NestedLevel(In_NestedLevel)
 	{
 	}
 	~cpon_object() = default;
 
-	std::shared_ptr<cpon_block> &operator[](_In_ int In_Index);
+	/// <summary>
+	/// 指定したインデックスに対応する要素への参照を返す配列アクセス演算子。
+	/// </summary>
+	/// <param name="[In_Index]">アクセスする要素のインデックス(ブロック番号)</param>
+	/// <returns>指定したインデックスに対応するブロックへのシェアポインタ</returns>
+	std::shared_ptr<cpon_block> operator[](_In_ int In_Index);
 
-	std::shared_ptr<cpon_block> CreateDataBlock()
-	{
-		auto newBlock = std::make_shared<cpon_block>(m_BlockHints, m_NestedLevel + 1);
-		m_Data.push_back(newBlock);
-		++m_DataCount;
-		return m_Data.back();
-	}
+	/// <summary>
+	/// 新しいブロックを作成し、そのシェアポインタを返します
+	/// </summary>
+	/// <returns>作成されたブロックへの共有所有権を持つstd::shared_ptr</returns>
+	std::shared_ptr<cpon_block> CreateDataBlock();
 
 	[[nodiscard]] int GetDataCount() const noexcept { return m_DataCount; }
 	[[nodiscard]] const std::string &GetObjectName() const noexcept { return m_ObjectName; }
 	[[nodiscard]] const std::string &GetBlockHints() const noexcept { return m_BlockHints; }
 
+	/// <summary>
+	/// オブジェクト名を設定します
+	/// </summary>
+	/// <param name="[In_ObjectName]">設定するオブジェクト名</param>
 	void SetObjectName(_In_ const std::string_view In_ObjectName) { m_ObjectName = std::string(In_ObjectName); }
 
 private:

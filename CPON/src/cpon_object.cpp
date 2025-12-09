@@ -10,6 +10,72 @@
 // ==============================
 #include "cpon_object.hpp"
 
+void cpon_block::SetValue(_In_ const std::string_view In_Key, _In_ const DataItem &In_Value)
+{
+	auto result = m_BlockData.try_emplace(std::string(In_Key), In_Value);
+	if(!result.second)
+	{
+		m_BlockData[std::string(In_Key)] = In_Value;
+		return;
+	}
+
+	CreateHints(In_Key, In_Value);
+}
+
+cpon_block::Array *cpon_block::CreateArray(_In_ const std::string_view In_Key, _In_ const Array &In_Values)
+{
+	auto res = m_BlockData.try_emplace(std::string(In_Key), In_Values);
+	if(!res.second)
+		m_BlockData[std::string(In_Key)] = In_Values;
+	else
+		CreateHints(In_Key, In_Values);
+	return &(std::get<Array>(m_BlockData[std::string(In_Key)]));
+}
+
+cpon_block::Object cpon_block::CreateObject(_In_ const std::string_view In_Key)
+{
+	Object obj = std::make_shared<cpon_object>(m_NestedLevel);
+	auto res = this->m_BlockData.try_emplace(std::string(In_Key), obj);
+	if(!res.second)
+		m_BlockData[std::string(In_Key)] = obj;
+	else
+		CreateHints(In_Key, obj);
+	return obj;
+}
+
+cpon_block::Object cpon_block::AddObject(_In_ Object In_Object)
+{
+	std::string key = In_Object->GetObjectName();
+	auto res = this->m_BlockData.try_emplace(std::string(key), In_Object);
+	In_Object->m_NestedLevel = this->m_NestedLevel;
+	if(!res.second)
+		m_BlockData[std::string(key)] = In_Object;
+	else
+		CreateHints(key, In_Object);
+	return In_Object;
+}
+
+cpon_block::Object cpon_block::GetObject(_In_ const std::string_view In_Key)
+{
+	auto itr = m_BlockData.find(std::string(In_Key));
+	if(itr != m_BlockData.end())
+	{
+		if(std::holds_alternative<Object>(itr->second))
+		{
+			return std::get<Object>(itr->second);
+		}
+		else
+		{
+			throw std::bad_variant_access();
+		}
+	}
+	else
+	{
+		std::cerr << "ƒL[‚ªŒ©‚Â‚©‚è‚Ü‚¹‚ñ‚Å‚µ‚½ : " << In_Key << std::endl;
+		return nullptr;
+	}
+}
+
 void cpon_block::CreateHints(_In_ const std::string_view In_TagName, _In_ DataItem In_Data)
 {
 	if (m_BlockHintsRef.find(std::string(In_TagName) + ":") != std::string::npos)
@@ -62,7 +128,7 @@ void cpon_block::CreateHints(_In_ const std::string_view In_TagName, _In_ DataIt
 	}
 }
 
-std::shared_ptr<cpon_block> &cpon_object::operator[](_In_ int In_Index)
+std::shared_ptr<cpon_block> cpon_object::operator[](_In_ int In_Index)
 {
 	if(m_Data.empty())
 	{
@@ -75,4 +141,12 @@ std::shared_ptr<cpon_block> &cpon_object::operator[](_In_ int In_Index)
 	if(m_Data.size() <= static_cast<size_t>(In_Index))
 		return m_Data.back();
 	return m_Data[In_Index];
+}
+
+std::shared_ptr<cpon_block> cpon_object::CreateDataBlock()
+{
+	auto newBlock = std::make_shared<cpon_block>(m_BlockHints, m_NestedLevel + 1);
+	m_Data.push_back(newBlock);
+	++m_DataCount;
+	return m_Data.back();
 }
