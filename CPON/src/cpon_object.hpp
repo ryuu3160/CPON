@@ -63,10 +63,21 @@ public:
 			auto itr = m_BlockData.find(std::string(In_Key));
 			if (itr != m_BlockData.end())
 			{
-				if (std::holds_alternative<DataValue>(itr->second))
+				if(std::holds_alternative<DataValue>(itr->second))
 				{
-					return std::get<T>(std::get<DataValue>(itr->second));
+					auto &value = std::get<DataValue>(itr->second);
+
+					if(std::holds_alternative<T>(value))
+						return std::get<T>(value);
+					else
+					{
+						std::cerr << "ï€éùÇµÇƒÇ¢ÇÈå^Ç∆éwíËÇµÇΩå^Ç™à·Ç¢Ç‹Ç∑" << std::endl << "T : " << typeid(T).name() << std::endl
+							<< "ï€éùÇµÇƒÇ¢ÇÈå^ : " << typeid(std::decay_t<decltype(value)>).name() << std::endl;
+						return *(T *)nullptr;
+					}
 				}
+				else
+					throw std::bad_variant_access();
 			}
 			else
 			{
@@ -83,23 +94,14 @@ public:
 			{
 				if (std::holds_alternative<Array>(itr->second))
 				{
-					//return std::get<std::vector<T>>(std::get<Array>(itr->second));
-
-					const Array &array = std::get<Array>(itr->second);
-
-					std::vector<T> result;
-					for (const auto &item : array)
+					auto &array = std::get<Array>(itr->second);
+					if(VariantArrayCheckType<T>(array))
+						return VariantArrayToVector<T>(array);
+					else
 					{
-						if (std::holds_alternative<T>(item))
-						{
-							result.push_back(std::get<T>(item));
-						}
-						else
-						{
-							throw std::bad_variant_access();
-						}
+						std::cerr << "îzóÒÇ™ï€éùÇµÇƒÇ¢ÇÈå^Ç∆éwíËÇµÇΩå^Ç™à·Ç¢Ç‹Ç∑" << std::endl;
+						return *(std::vector<T> *)nullptr;
 					}
-					return result;
 				}
 				else
 				{
@@ -123,17 +125,17 @@ public:
 		}
 
 		template<TypeValue T>
-		Array *CreateArray(_In_ const std::string_view In_Key, _In_ T In_Value, _In_ const size_t In_Count = 1)
+		std::vector<T> *CreateArray(_In_ const std::string_view In_Key, _In_ T In_Value, _In_ const size_t In_Count = 1)
 		{
 			std::vector<T> array;
 			array.resize(In_Count, In_Value);
 			m_BlockData[std::string(In_Key)] = array;
 			CreateHints(In_Key, array);
-			return &(std::get<Array>(m_BlockData[std::string(In_Key)]));
+			return &(std::get<std::vector<T>>(std::get<Array>(m_BlockData[std::string(In_Key)])));
 		}
 
 		template<TypeValue T>
-		Array *CreateArray(_In_ const std::string_view In_Key, _In_ const std::vector<T> &In_Values)
+		std::vector<T> *CreateArray(_In_ const std::string_view In_Key, _In_ const std::vector<T> &In_Values)
 		{
 			std::vector<T> array;
 			for (const auto &value : In_Values)
@@ -142,7 +144,7 @@ public:
 			}
 			m_BlockData[std::string(In_Key)] = array;
 			CreateHints(In_Key, array);
-			return &(std::get<Array>(m_BlockData[std::string(In_Key)]));
+			return &(std::get<std::vector<T>>(std::get<Array>(m_BlockData[std::string(In_Key)])));
 		}
 
 		Array *CreateArray(_In_ const std::string_view In_Key, _In_ const Array &In_Values)
@@ -205,7 +207,7 @@ public:
 
 		// å^É`ÉFÉbÉNÇ™çœÇÒÇ≈Ç¢ÇÈÇ±Ç∆ÇëOíÒÇ∆Ç∑ÇÈ
 		template<TypeValue T>
-		std::optional<std::vector<T>> VariantArrayToVector(_In_ Array In_Array)
+		std::vector<T> &VariantArrayToVector(_In_ Array &In_Array)
 		{
 			return std::get<std::vector<T>>(In_Array);
 		}

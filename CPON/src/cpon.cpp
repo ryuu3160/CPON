@@ -341,7 +341,7 @@ void cpon::ReadBlockArray(_In_ cpon_object::cpon_block &In_Block, _In_ const std
 	ArrayCountStr = ArrayCountStr.erase(ArrayCountStr.find("]"));
 	ArrayCount = FromStr<int>(ArrayCountStr);
 
-	cpon_object::cpon_block::Array array;
+	cpon_object::cpon_block::Array array = CreateArrayByType(ArrayType);
 	for (int i = 0; i < ArrayCount; ++i)
 	{
 		std::string ArrayValue = ArrayValues;
@@ -390,4 +390,21 @@ int cpon::CountElement(_In_ const std::string_view In_Data, _In_ char In_CountTa
 			++Count;
 	}
 	return Count;
+}
+
+cpon_object::cpon_block::Array cpon::CreateArrayByType(const std::string_view In_Type)
+{
+	if(In_Type == "<string>")
+		return cpon_object::cpon_block::Array(std::vector<std::string>{});
+	 else if(In_Type == "<int>")
+		return cpon_object::cpon_block::Array(std::vector<int>{});
+	 else if(In_Type == "<uint>")
+		return cpon_object::cpon_block::Array(std::vector<unsigned int>{});
+	 else if(In_Type == "<float>")
+		return cpon_object::cpon_block::Array(std::vector<float>{});
+	 else if(In_Type == "<double>")
+		return cpon_object::cpon_block::Array(std::vector<double>{});
+	 else if(In_Type == "<bool>")
+		return cpon_object::cpon_block::Array(std::vector<bool>{});
+	return cpon_object::cpon_block::Array(std::vector<std::string>{});
 }

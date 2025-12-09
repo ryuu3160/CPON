@@ -91,6 +91,8 @@ private:
 
 	int CountElement(_In_ const std::string_view In_Data, _In_ char In_CountTarget) const noexcept;
 
+	cpon_object::cpon_block::Array CreateArrayByType(_In_ const std::string_view In_Type);
+
 	template<typename T>
 	std::string ToStr(_In_ T In_Value)
 	{

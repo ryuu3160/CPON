@@ -1,5 +1,5 @@
 #ObjNum : 1
-Person[10]{Name:string,Age:int,Scores:array<int>}:
+Person[2]{Name:string,Age:int,Scores:array<int>}:
   Name:Alice
   Age:30
   Scores:[4]85, 90, 95, 100
@@ -8,35 +8,4 @@ Person[10]{Name:string,Age:int,Scores:array<int>}:
   Age:25
   Scores:[3]80, 88, 92
 
-  Name:Bob
-  Age:25
-  Scores:[3]80, 88, 92
-
-  Name:Bob
-  Age:25
-  Scores:[3]80, 88, 92
-
-  Name:Bob
-  Age:25
-  Scores:[3]80, 88, 92
-
-  Name:Bob
-  Age:25
-  Scores:[3]80, 88, 92
-
-  Name:Bob
-  Age:25
-  Scores:[3]80, 88, 92
-
-  Name:Bob
-  Age:25
-  Scores:[3]80, 88, 92
-
-  Name:Bob
-  Age:25
-  Scores:[3]80, 88, 92
-
-  Name:Bob
-  Age:25
-  Scores:[3]80, 88, 92
 
