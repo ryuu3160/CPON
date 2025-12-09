@@ -4,9 +4,9 @@ Person[2]{Scores:array<int>,Address:object,Name:string,Age:int}:
   Address:[1]{City:string}:
     City:New York
   Name:Alice
-  Age:30
+  Age:31
 
-  Scores:[3]80, 88, 92
+  Scores:[4]80, 88, 92, 99
   Name:Bob
   Age:25
 

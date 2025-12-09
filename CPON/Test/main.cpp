@@ -27,14 +27,14 @@ int main()
 
 	myCpon.LoadFromFile("output.cpon");
 
-	/*int ObjCount = myCpon.GetObjectCount();
+	int ObjCount = myCpon.GetObjectCount();
 	std::string ObjName = myCpon[0].GetObjectName();
 	std::cout << "Object Count: " << ObjCount << std::endl;
 	std::cout << "First Object Name: " << ObjName << std::endl;
 	std::cout << "First Object Data Count: " << myCpon[ObjName].GetDataCount() << std::endl;
-	std::cout << "First Block Name: " << myCpon[ObjName][1].GetValue<std::string>("Name") << std::endl;
-	std::cout << "First Block Age: " << myCpon[ObjName][1].GetValue<int>("Age") << std::endl;
-	std::vector<int> &Scores = myCpon[ObjName][1].GetArray<int>("Scores");
+	std::cout << "First Block Name: " << myCpon[ObjName][1]->GetValue<std::string>("Name") << std::endl;
+	std::cout << "First Block Age: " << myCpon[ObjName][1]->GetValue<int>("Age") << std::endl;
+	std::vector<int> &Scores = myCpon[ObjName][1]->GetArray<int>("Scores");
 	std::cout << "First Block Scores: ";
 	for (const auto &score : Scores)
 	{
@@ -42,8 +42,8 @@ int main()
 	}
 	std::cout << std::endl;
 
-	myCpon[ObjName][0].SetValue("Age", 31);
-	Scores.push_back(99);*/
+	myCpon[ObjName][0]->SetValue("Age", 31);
+	Scores.push_back(99);
 
 	myCpon.WriteToFile("output_modified.cpon");
 

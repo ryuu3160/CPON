@@ -173,6 +173,17 @@ public:
 		return obj;
 	}
 
+	Object CreateObject(_In_ const std::string_view In_Key, _In_ Object In_Object)
+	{
+		auto res = this->m_BlockData.try_emplace(std::string(In_Key), In_Object);
+		In_Object->m_NestedLevel = this->m_NestedLevel;
+		if(!res.second)
+			m_BlockData[std::string(In_Key)] = In_Object;
+		else
+			CreateHints(In_Key, In_Object);
+		return In_Object;
+	}
+
 	Object GetObject(_In_ const std::string_view In_Key)
 	{
 		auto itr = m_BlockData.find(std::string(In_Key));
@@ -263,6 +274,7 @@ private:
 class cpon_object
 {
 	friend class cpon;
+	friend class cpon_block;
 public:
 
 public:
