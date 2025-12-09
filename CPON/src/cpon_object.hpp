@@ -17,6 +17,7 @@
 #include <memory>
 #include <stdexcept>
 #include <iostream>
+#include <optional>
 // ==============================
 //	定数定義
 // ==============================
@@ -40,7 +41,7 @@ public:
 		friend class cpon_object;
 	public:
 		using DataValue = std::variant<std::string, int, unsigned int, float, double, bool>;
-		using Array = std::vector<DataValue>;
+		using Array = std::variant<std::vector<std::string>, std::vector<int>, std::vector<unsigned int>, std::vector<float>, std::vector<double>, std::vector<bool>>;
 
 		using DataItem = std::variant<DataValue, Array>;
 
@@ -124,7 +125,7 @@ public:
 		template<TypeValue T>
 		Array *CreateArray(_In_ const std::string_view In_Key, _In_ T In_Value, _In_ const size_t In_Count = 1)
 		{
-			Array array;
+			std::vector<T> array;
 			array.resize(In_Count, In_Value);
 			m_BlockData[std::string(In_Key)] = array;
 			CreateHints(In_Key, array);
@@ -134,7 +135,7 @@ public:
 		template<TypeValue T>
 		Array *CreateArray(_In_ const std::string_view In_Key, _In_ const std::vector<T> &In_Values)
 		{
-			Array array;
+			std::vector<T> array;
 			for (const auto &value : In_Values)
 			{
 				array.push_back(value);
@@ -152,7 +153,64 @@ public:
 		}
 
 	private:
+		struct GetElementAsStringVisitor
+		{
+			std::size_t idx;
+			template<typename Vec>
+			std::optional<std::string> operator()(Vec const &vec) const
+			{
+				using Elem = typename Vec::value_type;
+				if(idx >= vec.size())
+					return std::nullopt;
+				// vector<bool>のproxy等をElemに代入して扱うことで問題を回避
+				Elem val = vec[idx];
+
+				// std::string の場合はそのまま、bool は "true"/"false"、数値はstd::stringに変換
+				if constexpr(std::is_same_v<Elem, std::string>)
+				{
+					return val;
+				}
+				else if constexpr(std::is_same_v<Elem, bool>)
+				{
+					// bool の場合は true/false を文字列で返す
+					return val ? "true" : "false";
+				}
+				else if constexpr(std::is_arithmetic_v<Elem>)
+				{
+					std::string string;
+					string.resize(std::numeric_limits<size_t>::digits10 + 2);
+					auto res = std::to_chars(string.data(), string.data() + string.size(), val);
+					string.resize(res.ptr - string.data());
+					return string;
+				}
+				else
+				{
+					return std::nullopt;
+				}
+			}
+		};
+
+
 		void CreateHints(_In_ const std::string_view In_TagName, _In_ DataItem In_Data);
+
+		template<TypeValue T>
+		bool VariantArrayCheckType(_In_ Array In_Array)
+		{
+			if(std::holds_alternative<std::vector<T>>(In_Array))
+			{
+				return true;
+			}
+			return false;
+		}
+
+		// 型チェックが済んでいることを前提とする
+		template<TypeValue T>
+		std::optional<std::vector<T>> VariantArrayToVector(_In_ Array In_Array)
+		{
+			return std::get<std::vector<T>>(In_Array);
+		}
+
+	private:
 		std::string &m_BlockHintsRef;
 		std::unordered_map<std::string, DataItem> m_BlockData;
 	};

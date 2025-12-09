@@ -258,23 +258,21 @@ void cpon::WriteDataBlockValue(_In_ std::ofstream &In_File, _In_ const cpon_obje
 
 void cpon::WriteDataBlockArray(_In_ std::ofstream &In_File, _In_ const cpon_object::cpon_block::Array &In_Array)
 {
-	In_File << "[" << In_Array.size() << "]";
-	for (size_t i = 0; i < In_Array.size(); ++i)
+	size_t ArraySize = std::visit([](auto &&arg) -> size_t {
+		return arg.size();
+		}, In_Array);
+
+	In_File << "[" << ArraySize << "]";
+	for (size_t i = 0; i < ArraySize; ++i)
 	{
-		const auto &item = In_Array[i];
-		if (std::holds_alternative<std::string>(item))
-			In_File << std::get<std::string>(item);
-		else if (std::holds_alternative<int>(item))
-			In_File << std::get<int>(item);
-		else if (std::holds_alternative<unsigned int>(item))
-			In_File << std::get<unsigned int>(item);
-		else if (std::holds_alternative<float>(item))
-			In_File << std::get<float>(item);
-		else if (std::holds_alternative<double>(item))
-			In_File << std::get<double>(item);
-		else if (std::holds_alternative<bool>(item))
-			In_File << (std::get<bool>(item) ? "true" : "false");
-		if (i < In_Array.size() - 1)
+		auto opt = std::visit(cpon_object::cpon_block::GetElementAsStringVisitor{i}, In_Array);
+
+		if (!opt.has_value())
+			continue;
+		// —v‘f‚Ì‘‚«ž‚Ý
+		In_File << opt.value();
+		// ÅŒã‚Ì—v‘f‚Å‚È‚¯‚ê‚ÎƒJƒ“ƒ}‚ð’Ç‰Á
+		if (i < ArraySize - 1)
 			In_File << ", ";
 	}
 }
@@ -356,21 +354,23 @@ void cpon::ReadBlockArray(_In_ cpon_object::cpon_block &In_Block, _In_ const std
 			ArrayValue = ArrayValue.erase(0, 1);
 
 		if (ArrayType == "<string>")
-			array.push_back(ArrayValue);
+			std::get<std::vector<std::string>>(array).push_back(ArrayValue);
 		else if (ArrayType == "<int>")
-			array.push_back(FromStr<int>(ArrayValue));
+			std::get<std::vector<int>>(array).push_back(FromStr<int>(ArrayValue));
 		else if (ArrayType == "<uint>")
-			array.push_back(FromStr<unsigned int>(ArrayValue));
+			std::get<std::vector<unsigned int>>(array).push_back(FromStr<unsigned int>(ArrayValue));
 		else if (ArrayType == "<float>")
-			array.push_back(FromStr<float>(ArrayValue));
+			std::get<std::vector<float>>(array).push_back(FromStr<float>(ArrayValue));
 		else if (ArrayType == "<double>")
-			array.push_back(FromStr<double>(ArrayValue));
+			std::get<std::vector<double>>(array).push_back(FromStr<double>(ArrayValue));
 		else if (ArrayType == "<bool>")
 		{
+			bool boolian = false;
 			if (!IsStringNpos(ArrayValue.find("true")))
-				array.push_back(true);
+				boolian = true;
 			else
-				array.push_back(false);
+				boolian = false;
+			std::get<std::vector<bool>>(array).push_back(boolian);
 		}
 
 		ArrayValues = ArrayValues.erase(0, CommaPos + 1);

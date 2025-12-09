@@ -58,25 +58,23 @@ void cpon_object::cpon_block::CreateHints(_In_ const std::string_view In_TagName
 	}
 	else if (std::holds_alternative<cpon_block::Array>(In_Data))
 	{
-		if (std::get<cpon_block::Array>(In_Data).empty())
-		{
-			m_BlockHintsRef += "array<empty>";
-			return;
-		}
+		auto array = std::get<cpon_block::Array>(In_Data);
 
 		m_BlockHintsRef += "array";
 		
-		if (std::holds_alternative<std::string>(std::get<cpon_block::Array>(In_Data)[0]))
+		if (VariantArrayCheckType<std::string>(array))
 			m_BlockHintsRef += "<string>";
-		else if (std::holds_alternative<int>(std::get<cpon_block::Array>(In_Data)[0]))
+		else if (VariantArrayCheckType<int>(array))
 			m_BlockHintsRef += "<int>";
-		else if (std::holds_alternative<unsigned int>(std::get<cpon_block::Array>(In_Data)[0]))
+		else if (VariantArrayCheckType<unsigned int>(array))
 			m_BlockHintsRef += "<uint>";
-		else if (std::holds_alternative<float>(std::get<cpon_block::Array>(In_Data)[0]))
+		else if (VariantArrayCheckType<float>(array))
 			m_BlockHintsRef += "<float>";
-		else if (std::holds_alternative<double>(std::get<cpon_block::Array>(In_Data)[0]))
+		else if (VariantArrayCheckType<double>(array))
 			m_BlockHintsRef += "<double>";
-		else if (std::holds_alternative<bool>(std::get<cpon_block::Array>(In_Data)[0]))
+		else if (VariantArrayCheckType<bool>(array))
 			m_BlockHintsRef += "<bool>";
+		else
+			m_BlockHintsRef += "<unknown>";
 	}
 }
