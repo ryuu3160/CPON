@@ -84,6 +84,34 @@ public:
 	}
 
 	template<TypeValue T>
+	T* GetValuePtr(_In_ const std::string_view In_Key)
+	{
+		auto itr = m_BlockData.find(std::string(In_Key));
+		if(itr != m_BlockData.end())
+		{
+			if(std::holds_alternative<DataValue>(itr->second))
+			{
+				auto &value = std::get<DataValue>(itr->second);
+				if(std::holds_alternative<T>(value))
+					return &(std::get<T>(value));
+				else
+				{
+					std::cerr << "•ÛŽ‚µ‚Ä‚¢‚éŒ^‚ÆŽw’è‚µ‚½Œ^‚ªˆá‚¢‚Ü‚·" << std::endl << "T : " << typeid(T).name() << std::endl
+						<< "•ÛŽ‚µ‚Ä‚¢‚éŒ^ : " << typeid(std::decay_t<decltype(value)>).name() << std::endl;
+					return nullptr;
+				}
+			}
+			else
+				throw std::bad_variant_access();
+		}
+		else
+		{
+			std::cerr << "ƒL[‚ªŒ©‚Â‚©‚è‚Ü‚¹‚ñ‚Å‚µ‚½ : " << In_Key << std::endl;
+			return nullptr;
+		}
+	}
+
+	template<TypeValue T>
 	std::vector<T> &GetArray(_In_ const std::string_view In_Key)
 	{
 		auto itr = m_BlockData.find(std::string(In_Key));
@@ -109,6 +137,35 @@ public:
 		{
 			std::cerr << "ƒL[‚ªŒ©‚Â‚©‚è‚Ü‚¹‚ñ‚Å‚µ‚½ : " << In_Key << std::endl;
 			return *(std::vector<T> *)nullptr;
+		}
+	}
+
+	template<TypeValue T>
+	std::vector<T> *GetArrayPtr(_In_ const std::string_view In_Key)
+	{
+		auto itr = m_BlockData.find(std::string(In_Key));
+		if(itr != m_BlockData.end())
+		{
+			if(std::holds_alternative<Array>(itr->second))
+			{
+				auto &array = std::get<Array>(itr->second);
+				if(VariantArrayCheckType<T>(array))
+					return &(VariantArrayToVector<T>(array));
+				else
+				{
+					std::cerr << "”z—ñ‚ª•ÛŽ‚µ‚Ä‚¢‚éŒ^‚ÆŽw’è‚µ‚½Œ^‚ªˆá‚¢‚Ü‚·" << std::endl;
+					return nullptr;
+				}
+			}
+			else
+			{
+				throw std::bad_variant_access();
+			}
+		}
+		else
+		{
+			std::cerr << "ƒL[‚ªŒ©‚Â‚©‚è‚Ü‚¹‚ñ‚Å‚µ‚½ : " << In_Key << std::endl;
+			return nullptr;
 		}
 	}
 
