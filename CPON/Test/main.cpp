@@ -22,6 +22,12 @@ int main()
 	block1->SetValue("Name", std::string("Alice"));
 	block1->SetValue("Age", 30);
 
+	cpon_block::Object obj = std::make_shared<cpon_object>();
+	obj->SetObjectName("Test");
+	obj->CreateDataBlock()->SetValue("Value", 12345);
+	block1->AddObject(obj);
+	obj.reset();
+
 	myCpon.WriteToFile("output.cpon");
 
 
