@@ -174,7 +174,7 @@ bool cpon::LoadFromFile(_In_ const std::string_view In_FilePath)
 			// オブジェクト作成
 			auto Obj = CreateObject(ObjName);
 
-			if(ReadObject(File, line, Obj, In_FilePath))
+			if(!ReadObject(File, line, Obj, In_FilePath))
 				return false;
 		}
 		else
