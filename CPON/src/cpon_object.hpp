@@ -18,6 +18,9 @@
 #include <stdexcept>
 #include <iostream>
 #include <optional>
+
+#undef GetObject
+
 // ==============================
 //	’è”’è‹`
 // ==============================
