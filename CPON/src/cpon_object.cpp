@@ -48,6 +48,7 @@ cpon_block::Object cpon_block::AddObject(_In_ Object In_Object)
 	std::string key = In_Object->GetObjectName();
 	auto res = this->m_BlockData.try_emplace(std::string(key), In_Object);
 	In_Object->m_NestedLevel = this->m_NestedLevel;
+	In_Object->ResetBlockNestedLevel();
 	if(!res.second)
 		m_BlockData[std::string(key)] = In_Object;
 	else
@@ -156,4 +157,12 @@ void cpon_object::ClearData() noexcept
 	m_Data.clear();
 	m_DataCount = 0;
 	m_BlockHints.clear();
+}
+
+void cpon_object::ResetBlockNestedLevel() noexcept
+{
+	for(auto &block : m_Data)
+	{
+		block->m_NestedLevel = m_NestedLevel + 1;
+	}
 }

@@ -51,7 +51,7 @@ std::shared_ptr<cpon_object> cpon::CreateObject(_In_ const std::string_view In_O
 	return newObject;
 }
 
-std::shared_ptr<cpon_object> cpon::TryCreateObject(std::string In_ObjectName)
+std::shared_ptr<cpon_object> cpon::TryCreateObject(_In_ std::string In_ObjectName)
 {
 	auto itr = std::find_if(m_Objects.begin(), m_Objects.end(),
 		[&In_ObjectName](const std::shared_ptr<cpon_object> &obj)
@@ -63,7 +63,7 @@ std::shared_ptr<cpon_object> cpon::TryCreateObject(std::string In_ObjectName)
 	return CreateObject(In_ObjectName);
 }
 
-void cpon::AddObject(std::shared_ptr<cpon_object> In_Object) noexcept
+void cpon::AddObject(_In_ std::shared_ptr<cpon_object> In_Object) noexcept
 {
 	m_Objects.push_back(In_Object);
 }
@@ -186,7 +186,11 @@ void cpon::CreateFileHeader()
 
 void cpon::WriteObjectHeader(_In_ std::ofstream &In_File, _In_ std::shared_ptr<cpon_object> In_Object)
 {
-	In_File << In_Object->GetObjectName() << "[" << In_Object->GetDataCount() << "]" << "{" << In_Object->GetHints() << "}:\n";
+	// ブロック内のオブジェクトはキーがオブジェクト名として描き込まれるため、名前の出力をスキップ
+	if(In_Object->m_NestedLevel == 0)
+		In_File << In_Object->GetObjectName();
+
+	In_File << "[" << In_Object->GetDataCount() << "]" << "{" << In_Object->GetHints() << "}:\n";
 }
 
 void cpon::WriteDataBlocks(_In_ std::ofstream &In_File, _In_ std::shared_ptr<cpon_object> In_Object)
@@ -307,6 +311,10 @@ bool cpon::ReadObject(_In_ std::ifstream &In_File, _In_ std::string_view In_Line
 			if(std::getline(In_File, line))
 			{
 				auto IDPos = line.find(HintID);
+
+				// 空行の場合はスキップ
+				if(line.empty())
+					continue;
 
 				// データが存在しないので、ヒントを更新して再検索
 				if(IsStringNpos(IDPos))

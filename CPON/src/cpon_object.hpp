@@ -368,6 +368,8 @@ private:
 	std::string SetHints(_In_ const std::string_view In_Hints) noexcept { return m_BlockHints = std::string(In_Hints); }
 	void SetDataCount(_In_ const int In_Count) noexcept { m_DataCount = In_Count; }
 
+	void ResetBlockNestedLevel() noexcept;
+
 	std::vector<std::shared_ptr<cpon_block>> &GetDataBlocks() noexcept { return m_Data; }
 	
 	int m_NestedLevel = 0;
