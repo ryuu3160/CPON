@@ -6,13 +6,13 @@ int main()
 {
 	cpon myCpon;
 
-	auto &obj1 = myCpon.CreateObject("Person");
-	auto block1 = obj1.CreateDataBlock();
+	auto obj1 = myCpon.CreateObject("Person");
+	auto block1 = obj1->CreateDataBlock();
 	
 	auto array1 = block1->CreateArray("Scores", std::vector<int>{85, 90, 95});
 	auto obj2 = block1->CreateObject("Address");
 	array1->push_back(100); // ’Ç‰Á‚ÅƒXƒRƒA‚ð’Ç‰Á
-	auto block2 = obj1.CreateDataBlock();
+	auto block2 = obj1->CreateDataBlock();
 	block2->SetValue("Name", std::string("Bob"));
 	block2->SetValue("Age", 25);
 	block2->CreateArray("Scores", std::vector<int>{80, 88, 92});

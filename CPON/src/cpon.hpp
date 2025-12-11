@@ -48,7 +48,7 @@ public:
 	/// </summary>
 	/// <param name="[In_ObjectName]">作成するオブジェクトの名前を表す文字列ビュー</param>
 	/// <returns>作成された cpon_object への参照を返します</returns>
-	cpon_object &CreateObject(_In_ const std::string_view In_ObjectName);
+	std::shared_ptr<cpon_object> CreateObject(_In_ const std::string_view In_ObjectName);
 
 	/// <summary>
 	/// 既に存在するオブジェクトを追加します
@@ -94,7 +94,7 @@ private:
 	void WriteDataBlockValue(_In_ std::ofstream &In_File, _In_ const cpon_block::DataValue &In_Value);
 	void WriteDataBlockArray(_In_ std::ofstream &In_File, _In_ const cpon_block::Array &In_Array);
 
-	bool ReadObject(_In_ std::ifstream &In_File, _In_ std::string_view In_Line, _In_ cpon_object &In_Object, _In_ std::string_view In_FilePath);
+	bool ReadObject(_In_ std::ifstream &In_File, _In_ std::string_view In_Line, _In_ std::shared_ptr<cpon_object> In_Object, _In_ std::string_view In_FilePath);
 	std::string ReadObjectName(_In_ const std::string_view In_Line) const;
 	int ReadObjectDataCount(_In_ const std::string_view In_Line);
 	void ReadBlockInfo(_In_ const std::string_view In_Line, _Out_ int &Out_BlockNum, _Out_ std::string &Out_BlockHints);

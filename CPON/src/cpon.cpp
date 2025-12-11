@@ -43,12 +43,12 @@ cpon_object &cpon::operator[](_In_ std::string In_ObjectName)
 	throw std::out_of_range("指定された名前のオブジェクトが存在しません: " + In_ObjectName);
 }
 
-cpon_object &cpon::CreateObject(_In_ const std::string_view In_ObjectName)
+std::shared_ptr<cpon_object> cpon::CreateObject(_In_ const std::string_view In_ObjectName)
 {
 	auto newObject = std::make_shared<cpon_object>();
 	newObject->SetObjectName(In_ObjectName);
 	m_Objects.push_back(newObject);
-	return *newObject;
+	return newObject;
 }
 
 void cpon::AddObject(std::shared_ptr<cpon_object> In_Object) noexcept
@@ -148,7 +148,7 @@ bool cpon::LoadFromFile(_In_ const std::string_view In_FilePath)
 			ObjName = ReadObjectName(line);
 
 			// オブジェクト作成
-			auto &Obj = CreateObject(ObjName);
+			auto Obj = CreateObject(ObjName);
 
 			if(ReadObject(File, line, Obj, In_FilePath))
 				return false;
@@ -267,7 +267,7 @@ void cpon::WriteDataBlockArray(_In_ std::ofstream &In_File, _In_ const cpon_bloc
 	In_File << "\n";
 }
 
-bool cpon::ReadObject(_In_ std::ifstream &In_File, _In_ std::string_view In_Line, _In_ cpon_object& In_Object, _In_ std::string_view In_FilePath)
+bool cpon::ReadObject(_In_ std::ifstream &In_File, _In_ std::string_view In_Line, _In_ std::shared_ptr<cpon_object> In_Object, _In_ std::string_view In_FilePath)
 {
 	std::string line = std::string(In_Line);
 
@@ -282,7 +282,7 @@ bool cpon::ReadObject(_In_ std::ifstream &In_File, _In_ std::string_view In_Line
 	for(int BlockCount = 0; BlockCount < BlockNum; ++BlockCount)
 	{
 		// ブロックの作成
-		auto block = In_Object.CreateDataBlock();
+		auto block = In_Object->CreateDataBlock();
 		std::string BlockHint = BlockHints;
 
 		// ブロックデータの読み取り
@@ -326,7 +326,7 @@ bool cpon::ReadObject(_In_ std::ifstream &In_File, _In_ std::string_view In_Line
 				{
 					auto Obj = block->CreateObject(HintID);
 					// オブジェクト型の読み取り
-					if(!ReadObject(In_File,line, *Obj, In_FilePath))
+					if(!ReadObject(In_File,line, Obj, In_FilePath))
 						return false;
 				}
 				else
@@ -341,10 +341,10 @@ bool cpon::ReadObject(_In_ std::ifstream &In_File, _In_ std::string_view In_Line
 			}
 			BlockHint = BlockHint.erase(0, BlockHint.find(",") + 1);
 		}
-		if(In_Object.m_NestedLevel == 0)
+		if(In_Object->m_NestedLevel == 0)
 			std::getline(In_File, line); // 空白行を飛ばすために読み取る
 	}
-	if(In_Object.m_NestedLevel == 0)
+	if(In_Object->m_NestedLevel == 0)
 		std::getline(In_File, line); // 空白行を飛ばすために読み取る
 	return true;
 }
