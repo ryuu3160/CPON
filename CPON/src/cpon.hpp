@@ -76,6 +76,12 @@ public:
 	void ClearObjectsData() noexcept;
 
 	/// <summary>
+	/// オブジェクトデータが空であるかを確認します
+	/// </summary>
+	/// <returns>オブジェクトデータが空である場合はtrue、そうでない場合はfalseを返します</returns>
+	[[nodiscard]] bool IsEmpty() const noexcept { return m_Objects.empty(); }
+
+	/// <summary>
 	/// <para>指定したファイルパスにデータを書き込みます</para>
 	/// <para>ファイルの拡張子は".cpon"である必要があります</para>
 	/// </summary>

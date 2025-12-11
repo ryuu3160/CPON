@@ -239,6 +239,12 @@ public:
 	/// </returns>
 	Object GetObject(_In_ const std::string_view In_Key);
 
+	/// <summary>
+	/// ブロックデータが空であるかを確認します
+	/// </summary>
+	/// <returns>ブロックデータが空である場合はtrue、そうでない場合はfalseを返します</returns>
+	[[nodiscard]] bool IsEmpty() const noexcept { return m_BlockData.empty(); }
+
 private:
 	struct GetElementAsStringVisitor
 	{
@@ -335,6 +341,12 @@ public:
 	[[nodiscard]] int GetDataCount() const noexcept { return m_DataCount; }
 	[[nodiscard]] const std::string &GetObjectName() const noexcept { return m_ObjectName; }
 	[[nodiscard]] const std::string &GetBlockHints() const noexcept { return m_BlockHints; }
+
+	/// <summary>
+	/// オブジェクトデータが空であるかを確認します
+	/// </summary>
+	/// <returns>オブジェクトデータが空である場合はtrue、そうでない場合はfalseを返します</returns>
+	[[nodiscard]] bool IsEmpty() const noexcept { return m_Data.empty(); }
 
 	/// <summary>
 	/// オブジェクト名を設定します
