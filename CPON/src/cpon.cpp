@@ -51,6 +51,17 @@ cpon_object &cpon::CreateObject(_In_ const std::string_view In_ObjectName)
 	return *newObject;
 }
 
+void cpon::ClearObjectsData() noexcept
+{
+	// 現在保持しているオブジェクトを削除
+	for(auto &itr : m_Objects)
+	{
+		itr.reset();
+	}
+	m_Objects.clear();
+	m_FileHeader.clear();
+}
+
 bool cpon::WriteToFile(_In_ const std::string_view In_FilePath)
 {
 	if (IsStringNpos(In_FilePath.find(".cpon")))
@@ -100,12 +111,7 @@ bool cpon::LoadFromFile(_In_ const std::string_view In_FilePath)
 	}
 
 	// 現在保持しているオブジェクトを削除
-	for (auto &itr : m_Objects)
-	{
-		itr.reset();
-	}
-	m_Objects.clear();
-	m_FileHeader.clear();
+	ClearObjectsData();
 
 	std::string line;
 

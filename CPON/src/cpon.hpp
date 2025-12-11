@@ -57,6 +57,11 @@ public:
 	[[nodiscard]] int GetObjectCount() const noexcept { return static_cast<int>(m_Objects.size()); }
 
 	/// <summary>
+	/// オブジェクトデータをすべてクリアします
+	/// </summary>
+	void ClearObjectsData() noexcept;
+
+	/// <summary>
 	/// <para>指定したファイルパスにデータを書き込みます</para>
 	/// <para>ファイルの拡張子は".cpon"である必要があります</para>
 	/// </summary>

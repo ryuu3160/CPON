@@ -150,3 +150,10 @@ std::shared_ptr<cpon_block> cpon_object::CreateDataBlock()
 	++m_DataCount;
 	return m_Data.back();
 }
+
+void cpon_object::ClearData() noexcept
+{
+	m_Data.clear();
+	m_DataCount = 0;
+	m_BlockHints.clear();
+}

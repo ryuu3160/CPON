@@ -44,7 +44,10 @@ public:
 		: m_BlockHintsRef(In_BlockHints), m_NestedLevel(In_NestedLevel)
 	{
 	}
-	~cpon_block() = default;
+	~cpon_block()
+	{
+		m_BlockData.clear();
+	}
 
 	/// <summary>
 	/// 指定したキーに対応する値への参照を返します
@@ -254,7 +257,10 @@ public:
 		: m_NestedLevel(In_NestedLevel)
 	{
 	}
-	~cpon_object() = default;
+	~cpon_object()
+	{
+		ClearData();
+	}
 
 	/// <summary>
 	/// 指定したインデックスに対応する要素への参照を返す配列アクセス演算子。
@@ -278,6 +284,11 @@ public:
 	/// </summary>
 	/// <param name="[In_ObjectName]">設定するオブジェクト名</param>
 	void SetObjectName(_In_ const std::string_view In_ObjectName) { m_ObjectName = std::string(In_ObjectName); }
+
+	/// <summary>
+	/// オブジェクトデータをクリアします
+	/// </summary>
+	void ClearData() noexcept;
 
 private:
 
