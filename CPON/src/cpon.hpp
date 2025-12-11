@@ -51,6 +51,12 @@ public:
 	cpon_object &CreateObject(_In_ const std::string_view In_ObjectName);
 
 	/// <summary>
+	/// 既に存在するオブジェクトを追加します
+	/// </summary>
+	/// <param name="[In_Object]">cpon_objectへのシェアポインタ</param>
+	void AddObject(_In_ std::shared_ptr<cpon_object> In_Object) noexcept;
+
+	/// <summary>
 	/// 格納されているオブジェクトの数を取得します
 	/// </summary>
 	/// <returns>オブジェクトの個数をint型で返します。</returns>

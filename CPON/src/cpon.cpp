@@ -51,6 +51,11 @@ cpon_object &cpon::CreateObject(_In_ const std::string_view In_ObjectName)
 	return *newObject;
 }
 
+void cpon::AddObject(std::shared_ptr<cpon_object> In_Object) noexcept
+{
+	m_Objects.push_back(In_Object);
+}
+
 void cpon::ClearObjectsData() noexcept
 {
 	// 現在保持しているオブジェクトを削除
