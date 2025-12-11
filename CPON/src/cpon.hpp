@@ -51,6 +51,14 @@ public:
 	std::shared_ptr<cpon_object> CreateObject(_In_ const std::string_view In_ObjectName);
 
 	/// <summary>
+	/// <para>指定された名前のオブジェクトを作成します</para>
+	/// <para>既に存在する場合は、そのオブジェクトを返します</para>
+	/// </summary>
+	/// <param name="[In_ObjectName]">オブジェクト名</param>
+	/// <returns>作成された、または既にあるオブジェクトへのシェアポインタ</returns>
+	std::shared_ptr<cpon_object> TryCreateObject(_In_ std::string In_ObjectName);
+
+	/// <summary>
 	/// 既に存在するオブジェクトを追加します
 	/// </summary>
 	/// <param name="[In_Object]">cpon_objectへのシェアポインタ</param>

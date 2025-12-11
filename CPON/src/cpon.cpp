@@ -51,6 +51,18 @@ std::shared_ptr<cpon_object> cpon::CreateObject(_In_ const std::string_view In_O
 	return newObject;
 }
 
+std::shared_ptr<cpon_object> cpon::TryCreateObject(std::string In_ObjectName)
+{
+	auto itr = std::find_if(m_Objects.begin(), m_Objects.end(),
+		[&In_ObjectName](const std::shared_ptr<cpon_object> &obj)
+		{
+			return obj->GetObjectName() == In_ObjectName;
+		});
+	if(itr != m_Objects.end())
+		return *itr;
+	return CreateObject(In_ObjectName);
+}
+
 void cpon::AddObject(std::shared_ptr<cpon_object> In_Object) noexcept
 {
 	m_Objects.push_back(In_Object);
