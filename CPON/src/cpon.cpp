@@ -376,8 +376,6 @@ bool cpon::ReadObject(_In_ std::ifstream &In_File, _In_ std::string_view In_Line
 		if(In_Object->m_NestedLevel == 0)
 			std::getline(In_File, line); // ‹ó”’s‚ğ”ò‚Î‚·‚½‚ß‚É“Ç‚İæ‚é
 	}
-	if(In_Object->m_NestedLevel == 0)
-		std::getline(In_File, line); // ‹ó”’s‚ğ”ò‚Î‚·‚½‚ß‚É“Ç‚İæ‚é
 	return true;
 }
 
