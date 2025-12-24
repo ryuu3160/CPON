@@ -115,7 +115,7 @@ public:
 	}
 
 	template<TypeValue T>
-	std::vector<T> &GetArray(_In_ const std::string_view In_Key)
+	std::optional<std::reference_wrapper<std::vector<T>>> GetArray(_In_ const std::string_view In_Key)
 	{
 		auto itr = m_BlockData.find(std::string(In_Key));
 		if(itr != m_BlockData.end())
@@ -124,11 +124,13 @@ public:
 			{
 				auto &array = std::get<Array>(itr->second);
 				if(VariantArrayCheckType<T>(array))
-					return VariantArrayToVector<T>(array);
+				{
+					return std::ref(VariantArrayToVector<T>(array));
+				}
 				else
 				{
 					std::cerr << "”z—ñ‚ª•ÛŽ‚µ‚Ä‚¢‚éŒ^‚ÆŽw’è‚µ‚½Œ^‚ªˆá‚¢‚Ü‚·" << std::endl;
-					return *(std::vector<T> *)nullptr;
+					return std::nullopt;
 				}
 			}
 			else
@@ -139,7 +141,7 @@ public:
 		else
 		{
 			std::cerr << "ƒL[‚ªŒ©‚Â‚©‚è‚Ü‚¹‚ñ‚Å‚µ‚½ : " << In_Key << std::endl;
-			return *(std::vector<T> *)nullptr;
+			return std::nullopt;
 		}
 	}
 
