@@ -35,12 +35,14 @@ cpon_object &cpon::operator[](_In_ std::string_view In_ObjectName)
 	auto itr = std::find_if(m_Objects.begin(), m_Objects.end(),
 		[&In_ObjectName](const std::shared_ptr<cpon_object> &obj)
 		{
-			return obj->GetObjectName() == In_ObjectName.data();
+			return obj->GetObjectName() == In_ObjectName;
 		});
 	if (itr != m_Objects.end())
 		return **itr;
 
-	throw std::out_of_range("指定された名前のオブジェクトが存在しません: " + In_ObjectName);
+	std::string ErrorMsg = "指定された名前のオブジェクトが存在しません: ";
+	ErrorMsg += In_ObjectName;
+	throw std::out_of_range(ErrorMsg);
 }
 
 std::shared_ptr<cpon_object> cpon::GetObjectPtr(_In_ std::string_view In_ObjectName)
@@ -48,7 +50,7 @@ std::shared_ptr<cpon_object> cpon::GetObjectPtr(_In_ std::string_view In_ObjectN
 	auto itr = std::find_if(m_Objects.begin(), m_Objects.end(),
 		[&In_ObjectName](const std::shared_ptr<cpon_object> &obj)
 		{
-			return obj->GetObjectName() == In_ObjectName.data();
+			return obj->GetObjectName() == In_ObjectName;
 		});
 	if(itr != m_Objects.end())
 		return *itr;
@@ -68,7 +70,7 @@ std::shared_ptr<cpon_object> cpon::TryCreateObject(_In_ std::string_view In_Obje
 	auto itr = std::find_if(m_Objects.begin(), m_Objects.end(),
 		[&In_ObjectName](const std::shared_ptr<cpon_object> &obj)
 		{
-			return obj->GetObjectName() == In_ObjectName.data();
+			return obj->GetObjectName() == In_ObjectName;
 		});
 	if(itr != m_Objects.end())
 		return *itr;
