@@ -1,0 +1,168 @@
+/*+===================================================================
+	File: cpon_object.cpp
+	Summary: cponのオブジェクトクラス
+	Author: ryuu3160
+	Date: 2025/12/6 Sat PM 10:08:11 初回作成
+===================================================================+*/
+
+// ==============================
+//	include
+// ==============================
+#include "cpon_object.hpp"
+
+void cpon_block::SetValue(_In_ const std::string_view In_Key, _In_ const DataItem &In_Value)
+{
+	auto result = m_BlockData.try_emplace(std::string(In_Key), In_Value);
+	if(!result.second)
+	{
+		m_BlockData[std::string(In_Key)] = In_Value;
+		return;
+	}
+
+	CreateHints(In_Key, In_Value);
+}
+
+cpon_block::Array *cpon_block::CreateArray(_In_ const std::string_view In_Key, _In_ const Array &In_Values)
+{
+	auto res = m_BlockData.try_emplace(std::string(In_Key), In_Values);
+	if(!res.second)
+		m_BlockData[std::string(In_Key)] = In_Values;
+	else
+		CreateHints(In_Key, In_Values);
+	return &(std::get<Array>(m_BlockData[std::string(In_Key)]));
+}
+
+cpon_block::Object cpon_block::CreateObject(_In_ const std::string_view In_Key)
+{
+	Object obj = std::make_shared<cpon_object>(m_NestedLevel);
+	auto res = this->m_BlockData.try_emplace(std::string(In_Key), obj);
+	if(!res.second)
+		m_BlockData[std::string(In_Key)] = obj;
+	else
+		CreateHints(In_Key, obj);
+	return obj;
+}
+
+cpon_block::Object cpon_block::AddObject(_In_ Object In_Object)
+{
+	std::string key = In_Object->GetObjectName();
+	auto res = this->m_BlockData.try_emplace(std::string(key), In_Object);
+	In_Object->m_NestedLevel = this->m_NestedLevel;
+	In_Object->ResetBlockNestedLevel();
+	if(!res.second)
+		m_BlockData[std::string(key)] = In_Object;
+	else
+		CreateHints(key, In_Object);
+	return In_Object;
+}
+
+cpon_block::Object cpon_block::GetObject(_In_ const std::string_view In_Key)
+{
+	auto itr = m_BlockData.find(std::string(In_Key));
+	if(itr != m_BlockData.end())
+	{
+		if(std::holds_alternative<Object>(itr->second))
+		{
+			return std::get<Object>(itr->second);
+		}
+		else
+		{
+			throw std::bad_variant_access();
+		}
+	}
+	else
+	{
+		std::cerr << "キーが見つかりませんでした : " << In_Key << std::endl;
+		return nullptr;
+	}
+}
+
+void cpon_block::CreateHints(_In_ const std::string_view In_TagName, _In_ DataItem In_Data)
+{
+	if (m_BlockHintsRef.find(std::string(In_TagName) + ":") != std::string::npos)
+		return;
+
+	if (m_BlockHintsRef.empty())
+		m_BlockHintsRef = std::string(In_TagName) + ":";
+	else
+		m_BlockHintsRef += "," + std::string(In_TagName) + ":";
+
+	if (std::holds_alternative<cpon_block::DataValue>(In_Data))
+	{
+		if (std::holds_alternative<std::string>(std::get<cpon_block::DataValue>(In_Data)))
+			m_BlockHintsRef += "string";
+		else if (std::holds_alternative<int>(std::get<cpon_block::DataValue>(In_Data)))
+			m_BlockHintsRef += "int";
+		else if (std::holds_alternative<unsigned int>(std::get<cpon_block::DataValue>(In_Data)))
+			m_BlockHintsRef += "uint";
+		else if (std::holds_alternative<float>(std::get<cpon_block::DataValue>(In_Data)))
+			m_BlockHintsRef += "float";
+		else if (std::holds_alternative<double>(std::get<cpon_block::DataValue>(In_Data)))
+			m_BlockHintsRef += "double";
+		else if (std::holds_alternative<bool>(std::get<cpon_block::DataValue>(In_Data)))
+			m_BlockHintsRef += "bool";
+	}
+	else if (std::holds_alternative<cpon_block::Array>(In_Data))
+	{
+		auto array = std::get<cpon_block::Array>(In_Data);
+
+		m_BlockHintsRef += "array";
+		
+		if (VariantArrayCheckType<std::string>(array))
+			m_BlockHintsRef += "<string>";
+		else if (VariantArrayCheckType<int>(array))
+			m_BlockHintsRef += "<int>";
+		else if (VariantArrayCheckType<unsigned int>(array))
+			m_BlockHintsRef += "<uint>";
+		else if (VariantArrayCheckType<float>(array))
+			m_BlockHintsRef += "<float>";
+		else if (VariantArrayCheckType<double>(array))
+			m_BlockHintsRef += "<double>";
+		else if (VariantArrayCheckType<bool>(array))
+			m_BlockHintsRef += "<bool>";
+		else
+			m_BlockHintsRef += "<unknown>";
+	}
+	else if (std::holds_alternative<cpon_block::Object>(In_Data))
+	{
+		m_BlockHintsRef += "object";
+	}
+}
+
+std::shared_ptr<cpon_block> cpon_object::operator[](_In_ int In_Index)
+{
+	if(m_Data.empty())
+	{
+		auto newBlock = std::make_shared<cpon_block>(m_BlockHints);
+		m_Data.push_back(newBlock);
+		++m_DataCount;
+		return m_Data.back();
+	}
+
+	if(m_Data.size() <= static_cast<size_t>(In_Index))
+		return m_Data.back();
+	return m_Data[In_Index];
+}
+
+std::shared_ptr<cpon_block> cpon_object::CreateDataBlock()
+{
+	auto newBlock = std::make_shared<cpon_block>(m_BlockHints, m_NestedLevel + 1);
+	m_Data.push_back(newBlock);
+	++m_DataCount;
+	return m_Data.back();
+}
+
+void cpon_object::ClearData() noexcept
+{
+	m_Data.clear();
+	m_DataCount = 0;
+	m_BlockHints.clear();
+}
+
+void cpon_object::ResetBlockNestedLevel() noexcept
+{
+	for(auto &block : m_Data)
+	{
+		block->m_NestedLevel = m_NestedLevel + 1;
+	}
+}

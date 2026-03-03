@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<package>
+  <metadata>
+    <id>CPON</id>
+    <version>1.0.0</version>
+    <authors>ryuu3160</authors>
+    <description>C++ Object Notation Parser. Requires C++ version 20 or higher.</description>
+    <license type="expression">MIT</license>
+    <tags>native c++ msbuild</tags>
+  </metadata>
+
+  <files>
+    <!-- MSBuild integration -->
+    <file src="build\native\CPON.targets" target="build\native\CPON.targets" />
+
+    <!-- cpp/hpp -->
+    <file src="contentFiles\**\*.*" target="contentFiles" />
+  </files>
+</package>
