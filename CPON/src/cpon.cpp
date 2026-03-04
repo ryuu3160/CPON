@@ -489,7 +489,7 @@ void cpon::ReadBlockArray(_In_ std::shared_ptr<cpon_block> In_Block, _In_ const 
 		ArrayValues = ArrayValues.erase(0, CommaPos + 1);
 	}
 
-	In_Block->CreateArray(In_HintID, array);
+	In_Block->SetArray(In_HintID, array);
 }
 
 int cpon::CountElement(_In_ const std::string_view In_Data, _In_ char In_CountTarget) const noexcept

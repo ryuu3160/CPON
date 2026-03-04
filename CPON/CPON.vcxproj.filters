@@ -13,6 +13,9 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="NuGet">
+      <UniqueIdentifier>{a77b68a0-4dd0-4429-8226-acd21f3e45ce}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\cpon.cpp">
@@ -35,5 +38,11 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="cpp.hint" />
+    <None Include="..\CPON.NuGet\CPON.nuspec">
+      <Filter>NuGet</Filter>
+    </None>
+    <None Include="..\CPON.NuGet\build\native\CPON.targets">
+      <Filter>NuGet</Filter>
+    </None>
   </ItemGroup>
 </Project>

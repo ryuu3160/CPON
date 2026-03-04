@@ -56,7 +56,7 @@ public:
 	/// 指定したキーに対応する値への参照を返します
 	/// </summary>
 	/// <param name="[In_Key]">検索するキー。std::string_view 型で渡します</param>
-	/// <returns>キーに対応する値への参照 (T&)。存在しないキーでは未定義動作になり得ます</returns>
+	/// <returns>キーに対応する値への参照(T&)、存在しないキーでは未定義動作になり得ます</returns>
 	template<TypeValue T>
 	T &GetValue(_In_ const std::string_view In_Key)
 	{
@@ -86,6 +86,11 @@ public:
 		}
 	}
 
+	/// <summary>
+	/// 指定したキーに対応する値へのポインタを返します
+	/// </summary>
+	/// <param name="[In_Key]">検索するキー</param>
+	/// <returns>キーに対応する値へのポインタ(T*)、存在しないキーや型の不一致の場合はnullptrを返します</returns>
 	template<TypeValue T>
 	T* GetValuePtr(_In_ const std::string_view In_Key)
 	{
@@ -114,6 +119,11 @@ public:
 		}
 	}
 
+	/// <summary>
+	/// 指定されたキーに関連付けられた配列を取得します
+	/// </summary>
+	/// <param name="[In_Key]">検索する配列のキー</param>
+	/// <returns>配列への参照を含むoptional、キーが見つからない場合や型が一致しない場合はnulloptを返します</returns>
 	template<TypeValue T>
 	std::optional<std::reference_wrapper<std::vector<T>>> GetArray(_In_ const std::string_view In_Key)
 	{
@@ -145,6 +155,13 @@ public:
 		}
 	}
 
+	/**
+	* @brief 指定されたキーに関連付けられた配列へのポインタを取得します
+	* @param In_Key 検索する配列のキー
+	* @return キーが存在し、型が一致する場合はstd::vector<T>へのポインタ
+	* @return 見つからない場合や型が一致しない場合はnullptr
+	* @return 値がArray型でない場合はstd::bad_variant_accessをスローします
+	**/
 	template<TypeValue T>
 	std::vector<T> *GetArrayPtr(_In_ const std::string_view In_Key)
 	{
@@ -181,6 +198,14 @@ public:
 	/// <param name="[In_Value]">設定する値</param>
 	void SetValue(_In_ const std::string_view In_Key, _In_ const DataItem &In_Value);
 
+	/// <summary>
+	/// 指定されたキーで配列を作成し、初期値で初期化します
+	/// </summary>
+	/// <typeparam name="[T]">配列に格納される値の型</typeparam>
+	/// <param name="[In_Key]">配列を識別するためのキー</param>
+	/// <param name="[In_Value]">配列の各要素を初期化するための値</param>
+	/// <param name="[In_Count]">作成する配列の要素数。デフォルトは1</param>
+	/// <returns>作成された配列へのポインタ</returns>
 	template<TypeValue T>
 	std::vector<T> *CreateArray(_In_ const std::string_view In_Key, _In_ T In_Value, _In_ const size_t In_Count = 1)
 	{
@@ -195,8 +220,15 @@ public:
 		return &(std::get<std::vector<T>>(std::get<Array>(m_BlockData[std::string(In_Key)])));
 	}
 
+	/// <summary>
+	/// キーに関連付けて、配列をデータ構造に設定します
+	/// </summary>
+	/// <typeparam name="[T]">配列内の値の型</typeparam>
+	/// <param name="[In_Key]">配列に関連付けるキー</param>
+	/// <param name="[In_Values]">格納する値のベクター</param>
+	/// <returns>格納されたベクターへのポインター</returns>
 	template<TypeValue T>
-	std::vector<T> *CreateArray(_In_ const std::string_view In_Key, _In_ const std::vector<T> &In_Values)
+	std::vector<T> *SetArray(_In_ const std::string_view In_Key, _In_ const std::vector<T> &In_Values)
 	{
 		std::vector<T> array;
 		for(const auto &value : In_Values)
@@ -213,12 +245,12 @@ public:
 	}
 
 	/// <summary>
-	/// 既に存在する配列を使用して、新しいArrayデータを作成します
+	/// キーに関連付けて既にある配列を設定します
 	/// </summary>
 	/// <param name="[In_Key]">配列に関連付けるキー</param>
-	/// <param name="[In_Values]">使用する配列データ</param>
-	/// <returns>作成されたArrayへのポインタ</returns>
-	Array *CreateArray(_In_ const std::string_view In_Key, _In_ const Array &In_Array);
+	/// <param name="[In_Array]">設定する配列</param>
+	/// <returns>設定された配列へのポインタ</returns>
+	Array *SetArray(_In_ const std::string_view In_Key, _In_ const Array &In_Array);
 
 	/// <summary>
 	/// 指定されたキーに基づいてObjectを作成して返します
@@ -251,6 +283,8 @@ public:
 	[[nodiscard]] bool IsEmpty() const noexcept { return m_BlockData.empty(); }
 
 private:
+
+	// ブロックデータの要素を文字列として取得するためのビジター
 	struct GetElementAsStringVisitor
 	{
 		std::size_t idx;
@@ -288,8 +322,19 @@ private:
 		}
 	};
 
+	/// <summary>
+	/// タグ名とデータ項目に基づいてヒントを作成します
+	/// </summary>
+	/// <param name="[In_TagName]">ヒントを作成するためのタグ名</param>
+	/// <param name="[In_Data]">ヒントに関連付けられるデータ項目</param>
 	void CreateHints(_In_ const std::string_view In_TagName, _In_ DataItem In_Data);
 
+	/// <summary>
+	/// バリアント配列が指定された型を保持しているかどうかを確認します
+	/// </summary>
+	/// <typeparam name="[T]">確認する配列要素の型</typeparam>
+	/// <param name="[In_Array]">チェックする配列</param>
+	/// <returns>配列が指定された型を保持している場合はtrue、それ以外の場合はfalse</returns>
 	template<TypeValue T>
 	bool VariantArrayCheckType(_In_ Array In_Array)
 	{
@@ -343,8 +388,22 @@ public:
 	/// <returns>作成されたブロックへの共有所有権を持つstd::shared_ptr</returns>
 	std::shared_ptr<cpon_block> CreateDataBlock();
 
+	/// <summary>
+	/// データの数を取得します
+	/// </summary>
+	/// <returns>データの数</returns>
 	[[nodiscard]] int GetDataCount() const noexcept { return m_DataCount; }
+
+	/// <summary>
+	/// オブジェクトの名前を取得します
+	/// </summary>
+	/// <returns>オブジェクト名への定数参照</returns>
 	[[nodiscard]] const std::string &GetObjectName() const noexcept { return m_ObjectName; }
+
+	/// <summary>
+	/// ブロックヒントを取得します
+	/// </summary>
+	/// <returns>ブロックヒントを表す文字列への定数参照</returns>
 	[[nodiscard]] const std::string &GetBlockHints() const noexcept { return m_BlockHints; }
 
 	/// <summary>
@@ -366,14 +425,37 @@ public:
 
 private:
 
+	/// <summary>
+	/// ブロックヒントを取得します
+	/// </summary>
+	/// <returns>ブロックヒント</returns>
 	std::string GetHints() const noexcept { return m_BlockHints; }
+
+	/// <summary>
+	/// ブロックヒントを設定します
+	/// </summary>
+	/// <param name="[In_Hints]">設定するヒント文字列</param>
+	/// <returns>設定されたヒント文字列</returns>
 	std::string SetHints(_In_ const std::string_view In_Hints) noexcept { return m_BlockHints = std::string(In_Hints); }
+
+	/// <summary>
+	/// データの数を設定します
+	/// </summary>
+	/// <param name="[In_Count]">設定するデータの数</param>
 	void SetDataCount(_In_ const int In_Count) noexcept { m_DataCount = In_Count; }
 
+	/// <summary>
+	/// ブロックのネストレベルをリセットします
+	/// </summary>
 	void ResetBlockNestedLevel() noexcept;
 
+	/// <summary>
+	/// データブロックのベクトルへの参照を取得します
+	/// </summary>
+	/// <returns>cpon_blockオブジェクトの共有ポインタを含むベクトルへの参照</returns>
 	std::vector<std::shared_ptr<cpon_block>> &GetDataBlocks() noexcept { return m_Data; }
 	
+private:
 	int m_NestedLevel = 0;
 	int m_DataCount = 0;
 	std::string m_ObjectName;
