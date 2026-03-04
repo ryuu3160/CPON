@@ -3,6 +3,9 @@
 **CPON** はTOON(Token-Oriented Object Notation)とTONL(Token-Optimized Notation Language)を参考にして作成した、<br>C++専用のデータプラットフォームです。<br>
 本ライブラリは**MSVC**と**C++20**の環境向けに開発しました。
 
+## 📚 ドキュメント
+- 使い方・仕様は GitHub Wiki を参照してください： https://github.com/ryuu3160/CPON/wiki
+
 ## 🎉 最新リリース
 - オブジェクトのネスト機能追加
 - すでにあるオブジェクトをブロックデータに追加する機能追加
