@@ -22,7 +22,7 @@ void cpon_block::SetValue(_In_ const std::string_view In_Key, _In_ const DataIte
 	CreateHints(In_Key, In_Value);
 }
 
-cpon_block::Array *cpon_block::CreateArray(_In_ const std::string_view In_Key, _In_ const Array &In_Values)
+cpon_block::Array *cpon_block::SetArray(_In_ const std::string_view In_Key, _In_ const Array &In_Values)
 {
 	auto res = m_BlockData.try_emplace(std::string(In_Key), In_Values);
 	if(!res.second)
