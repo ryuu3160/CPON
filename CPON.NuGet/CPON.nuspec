@@ -2,7 +2,7 @@
 <package>
   <metadata>
     <id>CPON</id>
-    <version>1.2.1</version>
+    <version>1.2.2</version>
     <authors>ryuu3160</authors>
     <description>C++ Object Notation Parser. Requires C++ version 20 or higher.</description>
 	<readme>README.md</readme>
