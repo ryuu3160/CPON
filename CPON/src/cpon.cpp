@@ -95,16 +95,15 @@ void cpon::ClearObjectsData() noexcept
 
 bool cpon::WriteToFile(_In_ const std::string_view In_FilePath)
 {
-	if (IsStringNpos(In_FilePath.find(".cpon")))
-	{
-		std::cerr << "ファイルの拡張子が不正です : " << In_FilePath << std::endl;
-		return false;
-	}
+	std::string PathStr = std::string(In_FilePath);
 
-	std::ofstream File(std::string(In_FilePath), std::ios::out | std::ios::trunc);
+	if(IsStringNpos(PathStr.find_last_of('.')))
+		PathStr += ".cpon";
+
+	std::ofstream File(std::string(PathStr), std::ios::out | std::ios::trunc);
 	if (!File.is_open())
 	{
-		std::cerr << "ファイルを開けませんでした : " << In_FilePath << std::endl;
+		std::cerr << "ファイルを開けませんでした : " << PathStr << std::endl;
 		return false;
 	}
 
@@ -128,16 +127,15 @@ bool cpon::WriteToFile(_In_ const std::string_view In_FilePath)
 
 bool cpon::LoadFromFile(_In_ const std::string_view In_FilePath)
 {
-	if (IsStringNpos(In_FilePath.find(".cpon")))
-	{
-		std::cerr << "ファイルの拡張子が不正です : " << In_FilePath << std::endl;
-		return false;
-	}
+	std::string PathStr = std::string(In_FilePath);
 
-	std::ifstream File(std::string(In_FilePath), std::ios::in);
+	if(IsStringNpos(PathStr.find_last_of('.')))
+		PathStr += ".cpon";
+
+	std::ifstream File(std::string(PathStr), std::ios::in);
 	if (!File.is_open())
 	{
-		std::cerr << "ファイルを開けませんでした : " << In_FilePath << std::endl;
+		std::cerr << "ファイルを開けませんでした : " << PathStr << std::endl;
 		return false;
 	}
 
@@ -150,7 +148,7 @@ bool cpon::LoadFromFile(_In_ const std::string_view In_FilePath)
 	std::getline(File, line);
 	if (IsStringNpos(line.find("#ObjNum : ")))
 	{
-		std::cerr << "ヘッダ情報が読み取れませんでした。" << In_FilePath << std::endl;
+		std::cerr << "ヘッダ情報が読み取れませんでした。" << PathStr << std::endl;
 		return false;
 	}
 	m_FileHeader = line;
@@ -166,7 +164,7 @@ bool cpon::LoadFromFile(_In_ const std::string_view In_FilePath)
 			// オブジェクトヘッダの読み取り
 			if(IsStringNpos(line.find("}:")))
 			{
-				std::cerr << "データ形式が不正です : " << In_FilePath << std::endl;
+				std::cerr << "データ形式が不正です : " << PathStr << std::endl;
 				return false;
 			}
 
@@ -176,12 +174,12 @@ bool cpon::LoadFromFile(_In_ const std::string_view In_FilePath)
 			// オブジェクト作成
 			auto Obj = CreateObject(ObjName);
 
-			if(!ReadObject(File, line, Obj, In_FilePath))
+			if(!ReadObject(File, line, Obj, PathStr))
 				return false;
 		}
 		else
 		{
-			std::cerr << "データを読み取れませんでした : " << In_FilePath << std::endl;
+			std::cerr << "データを読み取れませんでした : " << PathStr << std::endl;
 			return false;
 		}
 	}
