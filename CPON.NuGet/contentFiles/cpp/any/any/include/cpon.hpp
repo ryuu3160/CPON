@@ -23,6 +23,8 @@
 // ==============================
 #include <string>
 #include <vector>
+#include <span>
+#include <cstdint>
 #include "cpon_object.hpp"
 
 /**
@@ -108,6 +110,49 @@ public:
 	 * @return 読み込みに成功した場合はtrue、失敗した場合はfalseを返す
 	 */
 	bool LoadFromFile(_In_ const std::string_view In_FilePath);
+
+	// ---------------------------------------------
+	// バイナリ関連
+	// ---------------------------------------------
+
+	// ==============================
+	// シリアライズ (cpon -> バイト列)
+	// ==============================
+
+	/**
+	 * @brief cponオブジェクト群をバイト列にシリアライズする
+	 * @param In_Cpon シリアライズ対象のcponオブジェクト
+	 * @return バイト列
+	 */
+	[[nodiscard]] std::vector<uint8_t> Serialize();
+
+	/**
+	 * @brief バイト列をcponオブジェクトにデシリアライズする
+	 * @param In_Data デシリアライズ対象のバイト列
+	 * @return 成功した場合はtrue
+	 */
+	[[nodiscard]] bool Deserialize(_In_ std::span<const uint8_t> In_Data);
+
+	// ==============================
+	// ファイル入出力
+	// ==============================
+
+	/**
+	 * @brief cponデータをバイナリファイルに書き込む
+	 * @brief 拡張子が指定されていない場合は ".cponb" が付加される
+	 * @param In_Cpon 書き込むcponオブジェクト
+	 * @param In_FilePath 書き込み先ファイルパス
+	 * @return 成功した場合はtrue
+	 */
+	bool WriteToBinaryFile(_In_ std::string_view In_FilePath);
+
+	/**
+	 * @brief バイナリファイルからcponデータを読み込む
+	 * @brief 拡張子が指定されていない場合は ".cponb" が付加される
+	 * @param In_FilePath 読み込むファイルパス
+	 * @return 成功した場合はtrue
+	 */
+	bool LoadFromBinaryFile(_In_ std::string_view In_FilePath);
 
 private:
 
