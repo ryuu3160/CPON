@@ -131,11 +131,19 @@
       <SubType>
       </SubType>
     </ClCompile>
+    <ClCompile Include="src\cpon_binary_helper.cpp">
+      <SubType>
+      </SubType>
+    </ClCompile>
     <ClCompile Include="src\cpon_object.cpp" />
     <ClCompile Include="Test\main.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\cpon.hpp">
+      <SubType>
+      </SubType>
+    </ClInclude>
+    <ClInclude Include="src\cpon_binary_helper.hpp">
       <SubType>
       </SubType>
     </ClInclude>
