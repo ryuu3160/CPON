@@ -30,6 +30,8 @@ int main()
 
 	myCpon.WriteToFile("output.cpon");
 
+	myCpon.WriteToBinaryFile("output.cponb");
+
 
 	myCpon.LoadFromFile("output.cpon");
 
@@ -39,7 +41,19 @@ int main()
 	std::cout << "First Object Name: " << ObjName << std::endl;
 	std::cout << "First Object Data Count: " << myCpon[ObjName].GetDataCount() << std::endl;
 	std::cout << "First Block Name: " << myCpon[ObjName][1]->GetValue<std::string>("Name") << std::endl;
+	std::cout << "First Block Age: " << myCpon[ObjName][1]->GetValue<int>("Age") << std::endl << std::endl;
+
+	myCpon.LoadFromBinaryFile("output.cponb");
+
+	ObjCount = myCpon.GetObjectCount();
+	ObjName = myCpon[0].GetObjectName();
+	std::cout << "Object Count: " << ObjCount << std::endl;
+	std::cout << "First Object Name: " << ObjName << std::endl;
+	std::cout << "First Object Data Count: " << myCpon[ObjName].GetDataCount() << std::endl;
+	std::cout << "First Block Name: " << myCpon[ObjName][1]->GetValue<std::string>("Name") << std::endl;
 	std::cout << "First Block Age: " << myCpon[ObjName][1]->GetValue<int>("Age") << std::endl;
+
+	std::cout << std::endl << std::endl;
 
 	auto opt = myCpon[ObjName][1]->GetArray<int>("Scores");
 	if(opt)
