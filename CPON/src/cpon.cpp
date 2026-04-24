@@ -14,6 +14,7 @@
 #include <fstream>
 #include <filesystem>
 #include <iostream>
+#include <random>
 
 cpon_object &cpon::operator[](_In_ int In_Index)
 {
@@ -184,47 +185,57 @@ bool cpon::LoadFromFile(_In_ const std::string_view In_FilePath)
 
 std::vector<uint8_t> cpon::Serialize()
 {
+	// ペイロード (オブジェクトデータ本体) を生成
+	std::vector<uint8_t> payload;
+	payload.reserve(1024);
+ 
+	cpon_binary::WriteU32(payload, static_cast<uint32_t>(m_Objects.size()));
+	for(const auto &obj : m_Objects)
+		cpon_binary_helper::SerializeObject(payload, obj);
+ 
+	// RLE圧縮
+	const uint32_t originalSize = static_cast<uint32_t>(payload.size());
+	std::vector<uint8_t> compressed = cpon_binary::RleCompress(payload);
+	const uint32_t compressedSize = static_cast<uint32_t>(compressed.size());
+ 
+	// XORシードをランダム生成(0は「スクランブルなし」なので除外)
+	std::mt19937 rng(std::random_device{}());
+	uint32_t seed = 0;
+	while(seed == 0)
+		seed = rng();
+ 
+	// XORスクランブル
+	cpon_binary::XorScramble(compressed, seed);
+ 
+	// ファイルヘッダ + ペイロードを結合
 	std::vector<uint8_t> buf;
-	buf.reserve(1024);
-
-	// マジックナンバー
+	buf.reserve(4 + 1 + 4 + 4 + 4 + compressedSize);
+ 
 	buf.insert(buf.end(), std::begin(cpon_binary::MAGIC), std::end(cpon_binary::MAGIC));
-	// バージョン
-	cpon_binary::WriteU8(buf, cpon_binary::VERSION);
-	// オブジェクト数
-	cpon_binary::WriteU32(buf, static_cast<uint32_t>(GetObjectCount()));
-	 
-	// 各オブジェクトをシリアライズ
-	const int objCount = GetObjectCount();
-	for(int i = 0; i < objCount; ++i)
-	{
-		auto &obj = (*this)[i];
-		// cpon_objectをshared_ptrで包む必要があるためGetObjectPtrを利用
-		auto objPtr = GetObjectPtr(obj.GetObjectName());
-		if(objPtr)
-			cpon_binary_helper::SerializeObject(buf, objPtr);
-	}
-
+	cpon_binary::WriteU8 (buf, cpon_binary::VERSION);
+	cpon_binary::WriteU32(buf, seed);
+	cpon_binary::WriteU32(buf, originalSize);
+	cpon_binary::WriteU32(buf, compressedSize);
+	buf.insert(buf.end(), compressed.begin(), compressed.end());
+ 
 	return buf;
 }
 
 bool cpon::Deserialize(_In_ std::span<const uint8_t> In_Data)
 {
-	cpon_binary::Reader r{ In_Data, 0 };
+	cpon_binary::Reader r(In_Data);
 
 	// マジックナンバー確認
 	uint8_t magic[4];
 	for(int i = 0; i < 4; ++i)
 	{
 		if(!r.ReadU8(magic[i]))
-		{
-			std::cerr << "バイナリデータが短すぎます (マジックナンバー読み取り失敗)" << std::endl;
 			return false;
-		}
 	}
+
 	if(std::memcmp(magic, cpon_binary::MAGIC, 4) != 0)
 	{
-		std::cerr << "マジックナンバーが一致しません。CPONバイナリファイルではない可能性があります。" << std::endl;
+		std::cerr << "マジックナンバーが一致しません。" << std::endl;
 		return false;
 	}
 
@@ -237,78 +248,79 @@ bool cpon::Deserialize(_In_ std::span<const uint8_t> In_Data)
 	}
 	if(version != cpon_binary::VERSION)
 	{
-		std::cerr << "バイナリバージョンが異なります: " << static_cast<int>(version)
-			<< " (期待値: " << static_cast<int>(cpon_binary::VERSION) << ")" << std::endl;
+		std::cerr << "バイナリバージョンが異なります: 0x" << std::hex
+			<< static_cast<int>(version) << " (期待: 0x"
+			<< static_cast<int>(cpon_binary::VERSION) << ")" << std::dec << std::endl;
 		return false;
 	}
 
-	// 既存データをクリア
-	ClearObjectsData();
+	// ヘッダ読み取り
+	uint32_t seed, originalSize, compressedSize;
+	if(!r.ReadU32(seed))
+		return false;
+	if(!r.ReadU32(originalSize))
+		return false;
+	if(!r.ReadU32(compressedSize))
+		return false;
 
-	// オブジェクト数
-	uint32_t objCount;
-	if(!r.ReadU32(objCount))
+	// 圧縮データを取り出す
+	// ヘッダサイズ: magic(4) + version(1) + seed(4) + originalSize(4) + compressedSize(4) = 17B
+	constexpr size_t HeaderSize = 4 + 1 + 4 + 4 + 4;
+	if(In_Data.size() < HeaderSize + compressedSize)
 	{
-		std::cerr << "オブジェクト数の読み取りに失敗しました。" << std::endl;
+		std::cerr << "ファイルサイズが不正です。" << std::endl;
 		return false;
 	}
+	std::vector<uint8_t> compressed(
+		In_Data.data() + HeaderSize,
+		In_Data.data() + HeaderSize + compressedSize);
+
+	// XORデスクランブル
+	cpon_binary::XorDescramble(compressed, seed);
+
+	// RLE展開
+	std::vector<uint8_t> payload;
+	if(!cpon_binary::RleDecompress(compressed, originalSize, payload))
+		return false;
+
+	// ペイロードをデシリアライズ
+	ClearObjectsData();
+	cpon_binary::Reader pr(payload);
+
+	uint32_t objCount;
+	if(!pr.ReadU32(objCount)) return false;
 
 	for(uint32_t oi = 0; oi < objCount; ++oi)
 	{
 		std::string objName, blockHints;
-		if(!r.ReadShortString(objName))
-		{
-			std::cerr << "オブジェクト名の読み取りに失敗しました (オブジェクト index=" << oi << ")" << std::endl;
+		if(!pr.ReadShortString(objName))
 			return false;
-		}
-		if(!r.ReadShortString(blockHints))
-		{
-			std::cerr << "ブロックヒントの読み取りに失敗しました (オブジェクト: " << objName << ")" << std::endl;
+		if(!pr.ReadShortString(blockHints))
 			return false;
-		}
 
 		auto obj = CreateObject(objName);
 		obj->SetHints(blockHints);
 
 		uint32_t blockCount;
-		if(!r.ReadU32(blockCount))
-		{
-			std::cerr << "ブロック数の読み取りに失敗しました (オブジェクト: " << objName << ")" << std::endl;
-			return false;
-		}
+		if(!pr.ReadU32(blockCount)) return false;
 
 		for(uint32_t bi = 0; bi < blockCount; ++bi)
 		{
 			auto block = obj->CreateDataBlock();
 
 			uint32_t itemCount;
-			if(!r.ReadU32(itemCount))
-			{
-				std::cerr << "データ項目数の読み取りに失敗しました (オブジェクト: " << objName
-					<< ", ブロック index=" << bi << ")" << std::endl;
-				return false;
-			}
+			if(!pr.ReadU32(itemCount)) return false;
 
 			for(uint32_t di = 0; di < itemCount; ++di)
 			{
 				std::string key;
-				if(!r.ReadShortString(key))
-				{
-					std::cerr << "キーの読み取りに失敗しました (オブジェクト: " << objName
-						<< ", ブロック=" << bi << ", データ=" << di << ")" << std::endl;
-					return false;
-				}
 				uint8_t typeId;
-				if(!r.ReadU8(typeId))
-				{
-					std::cerr << "型IDの読み取りに失敗しました (key: " << key << ")" << std::endl;
+				if(!pr.ReadShortString(key))
 					return false;
-				}
-				if(!cpon_binary_helper::DeserializeValue(r, block, key, typeId))
-				{
-					std::cerr << "値の読み取りに失敗しました (key: " << key << ")" << std::endl;
+				if(!pr.ReadU8(typeId))
 					return false;
-				}
+				if(!cpon_binary_helper::DeserializeValue(pr, block, key, typeId))
+					return false;
 			}
 		}
 	}
@@ -321,26 +333,16 @@ bool cpon::WriteToBinaryFile(_In_ std::string_view In_FilePath)
 	std::string path(In_FilePath);
 	if(path.find_last_of('.') == std::string::npos)
 		path += ".cponb";
-
+ 
 	const auto buf = Serialize();
-
 	std::ofstream file(path, std::ios::out | std::ios::binary | std::ios::trunc);
 	if(!file.is_open())
 	{
 		std::cerr << "バイナリファイルを開けませんでした: " << path << std::endl;
 		return false;
 	}
-
 	file.write(reinterpret_cast<const char *>(buf.data()), static_cast<std::streamsize>(buf.size()));
-	file.close();
-
-	if(file.fail())
-	{
-		std::cerr << "バイナリファイルへの書き込みに失敗しました: " << path << std::endl;
-		return false;
-	}
-
-	return true;
+	return !file.fail();
 }
 
 bool cpon::LoadFromBinaryFile(_In_ std::string_view In_FilePath)
@@ -358,14 +360,9 @@ bool cpon::LoadFromBinaryFile(_In_ std::string_view In_FilePath)
 
 	const std::streamsize fileSize = file.tellg();
 	file.seekg(0, std::ios::beg);
-
 	std::vector<uint8_t> buf(static_cast<size_t>(fileSize));
 	if(!file.read(reinterpret_cast<char *>(buf.data()), fileSize))
-	{
-		std::cerr << "バイナリファイルの読み込みに失敗しました: " << path << std::endl;
 		return false;
-	}
-	file.close();
 
 	return Deserialize(std::span<const uint8_t>(buf.data(), buf.size()));
 }
