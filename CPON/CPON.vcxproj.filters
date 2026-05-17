@@ -13,7 +13,7 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
-    <Filter Include="NuGet">
+    <Filter Include="NuPkg">
       <UniqueIdentifier>{a77b68a0-4dd0-4429-8226-acd21f3e45ce}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
@@ -22,9 +22,6 @@
       <Filter>ソース ファイル</Filter>
     </ClCompile>
     <ClCompile Include="src\cpon_object.cpp">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
-    <ClCompile Include="Test\main.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
     <ClCompile Include="src\cpon_binary_helper.cpp">
@@ -44,11 +41,11 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="cpp.hint" />
-    <None Include="..\CPON.NuGet\CPON.nuspec">
-      <Filter>NuGet</Filter>
+    <None Include="..\CPON.nupkg\build\native\CPON.targets">
+      <Filter>NuPkg</Filter>
     </None>
-    <None Include="..\CPON.NuGet\build\native\CPON.targets">
-      <Filter>NuGet</Filter>
+    <None Include="..\CPON.nupkg\CPON.nuspec">
+      <Filter>NuPkg</Filter>
     </None>
   </ItemGroup>
 </Project>

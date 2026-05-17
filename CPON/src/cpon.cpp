@@ -394,7 +394,7 @@ void cpon::WriteDataBlocks(_In_ std::ofstream &In_File, _In_ std::shared_ptr<cpo
 	std::string Hints = In_Object->GetBlockHints();
 	int BlockDataCount = CountElement(Hints, ':');
 
-	for (int i = 0; i < Blocks.size();++i)
+	for (size_t i = 0; i < Blocks.size();++i)
 	{
 		std::string Hint = Hints;
 		for (int j = 0; j < BlockDataCount; ++j)
