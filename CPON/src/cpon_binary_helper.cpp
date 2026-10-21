@@ -128,7 +128,7 @@ namespace cpon_binary
 
 			// lit トークン: (litLen-1)
 			out.push_back(static_cast<uint8_t>(litLen - 1));
-			out.insert(out.end(), &In_Data[i], &In_Data[i + litLen]);
+			out.insert(out.end(), In_Data.data() + i, In_Data.data() + i + litLen);
 			i += litLen;
 		}
 
@@ -185,7 +185,7 @@ namespace cpon_binary
 					std::cerr << "RLE展開エラー: 展開後サイズが期待値を超えました" << std::endl;
 					return false;
 				}
-				Out_Data.insert(Out_Data.end(), &In_Data[i], &In_Data[i + count]);
+				Out_Data.insert(Out_Data.end(), In_Data.data() + i, In_Data.data() + i + count);
 				i += count;
 			}
 		}
@@ -410,7 +410,7 @@ namespace cpon_binary
 			return false;
 		if(!HasBytes(len))
 			return false;
-		Out_Str.assign(reinterpret_cast<const char *>(&m_Data[m_Pos]), len);
+		Out_Str.assign(reinterpret_cast<const char *>(m_Data.data() + m_Pos), len);
 		m_Pos += len;
 		return true;
 	}
@@ -422,7 +422,7 @@ namespace cpon_binary
 			return false;
 		if(!HasBytes(len))
 			return false;
-		Out_Str.assign(reinterpret_cast<const char *>(&m_Data[m_Pos]), len);
+		Out_Str.assign(reinterpret_cast<const char *>(m_Data.data() + m_Pos), len);
 		m_Pos += len;
 		return true;
 	}

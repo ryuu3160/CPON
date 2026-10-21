@@ -11,6 +11,7 @@
 - 2つのビルドツールに対応(v143,v145)
 - x64,Win32(x86)両方に対応
 - MT,MTd,MD,MDd全てに対応
+- v1.4.4: バイナリ保存(Serialize/WriteToBinaryFile)でデバッグビルド時にハングする不具合を修正
 
 ## 📊 CPONのフォーマット
 
