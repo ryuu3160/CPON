@@ -16,6 +16,22 @@
 #include <iostream>
 #include <random>
 
+namespace
+{
+	// Position of In_Key in a data line "<indent>Key:value", or npos when the line's key is not exactly In_Key
+	// (a substring match would read "ExitTime:" as "Time", or find a key name inside a value)
+	size_t FindLineKey(const std::string &In_Line, const std::string &In_Key)
+	{
+		const size_t Start = In_Line.find_first_not_of(" \t");
+		if(Start == std::string::npos)
+			return std::string::npos;
+		const size_t Colon = In_Line.find(':', Start);
+		if(Colon == std::string::npos || In_Line.compare(Start, Colon - Start, In_Key) != 0)
+			return std::string::npos;
+		return Start;
+	}
+}
+
 cpon_object &cpon::operator[](_In_ int In_Index)
 {
 	if(m_Objects.size() <= static_cast<size_t>(In_Index) || In_Index < 0)
@@ -505,7 +521,7 @@ bool cpon::ReadObject(_In_ std::ifstream &In_File, _In_ std::string_view In_Line
 
 			if(std::getline(In_File, line))
 			{
-				auto IDPos = line.find(HintID);
+				auto IDPos = FindLineKey(line, HintID);
 
 				// 空行の場合はスキップ
 				if(line.empty())
@@ -519,7 +535,7 @@ bool cpon::ReadObject(_In_ std::ifstream &In_File, _In_ std::string_view In_Line
 					{
 						BlockHint = BlockHint.erase(0, BlockHint.find(",") + 1);
 						ReadHintInfo(BlockHint, HintID, HintType);
-						IDPos = line.find(HintID);
+						IDPos = FindLineKey(line, HintID);
 						if(!IsStringNpos(IDPos))
 							break;
 					}

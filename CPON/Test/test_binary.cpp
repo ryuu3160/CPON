@@ -140,6 +140,95 @@ namespace
 		return true;
 	}
 
+	bool RoundTripText(const Case &c)
+	{
+		const char *path = "cpon_test_tmp.cpon";
+		cpon src;
+		c.build(src);
+		if(!src.WriteToFile(path))
+		{
+			Fail(c.name, "WriteToFile failed");
+			return false;
+		}
+		cpon dst;
+		const bool loaded = dst.LoadFromFile(path);
+		std::remove(path);
+		if(!loaded)
+		{
+			Fail(c.name, "LoadFromFile failed");
+			return false;
+		}
+		if(!c.verify(dst))
+		{
+			Fail(c.name, "values differ after WriteToFile/LoadFromFile");
+			return false;
+		}
+		return true;
+	}
+
+	// Keys where one name is a substring of another (hint de-duplication and text loading must match whole keys)
+	std::vector<Case> MakeKeyCases()
+	{
+		std::vector<Case> cases;
+		cases.push_back(Case{ "key-prefix-has-exit-time",
+			[](cpon &c)
+			{
+				auto b = c.CreateObject("T")->CreateDataBlock();
+				b->SetValue("HasExitTime", true);
+				b->SetValue("ExitTime", 0.75f);
+			},
+			[](cpon &c) { return ChkVal<bool>(*c["T"][0], "HasExitTime", true) && ChkVal<float>(*c["T"][0], "ExitTime", 0.75f); } });
+		cases.push_back(Case{ "key-suffix-after-longer",
+			[](cpon &c)
+			{
+				auto b = c.CreateObject("T")->CreateDataBlock();
+				b->SetValue("ExitTime", 2);
+				b->SetValue("Time", 1);
+			},
+			[](cpon &c) { return ChkVal<int>(*c["T"][0], "ExitTime", 2) && ChkVal<int>(*c["T"][0], "Time", 1); } });
+		cases.push_back(Case{ "key-short-after-long",
+			[](cpon &c)
+			{
+				auto b = c.CreateObject("T")->CreateDataBlock();
+				b->SetValue("AA", 1);
+				b->SetValue("A", 2);
+			},
+			[](cpon &c) { return ChkVal<int>(*c["T"][0], "AA", 1) && ChkVal<int>(*c["T"][0], "A", 2); } });
+		// Block 1 lacks "Time": its "ExitTime" line must not be read as "Time"
+		cases.push_back(Case{ "key-missing-suffix-in-block",
+			[](cpon &c)
+			{
+				auto o = c.CreateObject("T");
+				auto b0 = o->CreateDataBlock();
+				b0->SetValue("Time", 1);
+				b0->SetValue("ExitTime", 2);
+				o->CreateDataBlock()->SetValue("ExitTime", 5);
+			},
+			[](cpon &c)
+			{
+				auto &o = c["T"];
+				return o.GetDataCount() == 2 && ChkVal<int>(*o[0], "Time", 1) && ChkVal<int>(*o[0], "ExitTime", 2) &&
+					ChkVal<int>(*o[1], "ExitTime", 5) && o[1]->GetValuePtr<int>("Time") == nullptr;
+			} });
+		// Block 1 lacks "A" and its "B" value contains "A": the value must not be read as key "A"
+		cases.push_back(Case{ "key-missing-name-in-value",
+			[](cpon &c)
+			{
+				auto o = c.CreateObject("T");
+				auto b0 = o->CreateDataBlock();
+				b0->SetValue("A", std::string("first"));
+				b0->SetValue("B", std::string("second"));
+				o->CreateDataBlock()->SetValue("B", std::string("xAx"));
+			},
+			[](cpon &c)
+			{
+				auto &o = c["T"];
+				return o.GetDataCount() == 2 && ChkVal<std::string>(*o[0], "A", "first") && ChkVal<std::string>(*o[1], "B", "xAx") &&
+					o[1]->GetValuePtr<std::string>("A") == nullptr;
+			} });
+		return cases;
+	}
+
 	// Single object "Obj" / single block / single string value "Name"
 	Case StringCase(const char *name, const std::string &value)
 	{
@@ -317,6 +406,17 @@ int main()
 		const int before = g_Failures;
 		RoundTripMemory(c);
 		RoundTripFile(c);
+		++ran;
+		std::printf("  %-28s %s\n", c.name, g_Failures == before ? "ok" : "FAILED");
+		std::fflush(stdout);
+	}
+
+	for(const auto &c : MakeKeyCases())
+	{
+		const int before = g_Failures;
+		RoundTripMemory(c);
+		RoundTripFile(c);
+		RoundTripText(c);
 		++ran;
 		std::printf("  %-28s %s\n", c.name, g_Failures == before ? "ok" : "FAILED");
 		std::fflush(stdout);
