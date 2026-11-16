@@ -1,5 +1,6 @@
 // Internal helper: reads and writes the .cpon text format.
 #include "cpon_text.hpp"
+#include <algorithm>
 #include <charconv>
 #include <ostream>
 #include <variant>
@@ -640,6 +641,7 @@ bool cpon_text_helper::ReadV2Block(_In_ Lines &InOut_Lines, _In_ const std::shar
 
 	auto Block = In_Object->CreateDataBlock();
 	const size_t Indent = static_cast<size_t>(In_Depth) * 2;
+	std::vector<const cpon_detail::HintEntry *> Seen; // keys already read in this block
 	while(InOut_Lines.HasLine() && !InOut_Lines.AtBlank())
 	{
 		const std::string_view Line = InOut_Lines.Data[InOut_Lines.Pos];
@@ -668,6 +670,9 @@ bool cpon_text_helper::ReadV2Block(_In_ Lines &InOut_Lines, _In_ const std::shar
 		}
 		if(!Found)
 			return false;
+		if(std::find(Seen.begin(), Seen.end(), Found) != Seen.end())
+			return false; // duplicate key
+		Seen.push_back(Found);
 
 		// Key and Rest point into the line, which stays alive: Lines is never modified while reading
 		++InOut_Lines.Pos;
