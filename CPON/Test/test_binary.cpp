@@ -664,6 +664,29 @@ namespace
 			Report(name, before, InOut_Ran);
 		}
 
+		// A nested object whose middle block is empty: the writer leaves two blank lines there
+		{
+			const char *name = "v1-nested-empty-middle";
+			const int before = g_Failures;
+			cpon c;
+			const bool ok = LoadText(name,
+				"#ObjNum : 1\n"
+				"O[1]{N:object,After:int}:\n"
+				"  N:[3]{X:int}:\n"
+				"    X:1\n"
+				"\n"
+				"\n"
+				"    X:3\n"
+				"  After:9\n"
+				"\n", c);
+			auto n = ok ? c["O"][0]->GetObject("N") : nullptr;
+			if(!n || n->GetDataCount() != 3
+				|| !ChkVal<int>(*(*n)[0], "X", 1) || !(*n)[1]->IsEmpty() || !ChkVal<int>(*(*n)[2], "X", 3)
+				|| !ChkVal<int>(*c["O"][0], "After", 9))
+				Fail(name, "values");
+			Report(name, before, InOut_Ran);
+		}
+
 		// 1.4.x wrote nested blocks made through cpon_object::operator[] with the outer indentation:
 		// v1 must not depend on indentation
 		{
@@ -762,6 +785,7 @@ namespace
 		ExpectRejected("v1-rej-array-no-close", "#ObjNum : 1\nO[1]{A:array<int>}:\n  A:[2 1, 2\n\n");
 		ExpectRejected("v1-rej-array-no-open", "#ObjNum : 1\nO[1]{A:array<int>}:\n  A:1, 2\n\n");
 		ExpectRejected("v1-rej-nested-bad-header", "#ObjNum : 1\nO[1]{N:object}:\n  N:[1]{X:int}\n    X:1\n\n");
+		ExpectRejected("v1-rej-nested-huge-block-count", "#ObjNum : 1\nO[1]{N:object,After:int}:\n  N:[1000000000]{X:int}:\n    X:1\n  After:9\n\n");
 		// block counts far beyond the content must fail quickly instead of allocating
 		ExpectRejected("v1-rej-huge-block-count", "#ObjNum : 1\nO[1000000000]{A:int}:\n  A:1\n\n");
 		ExpectRejected("v1-rej-huge-object-count", "#ObjNum : 1000000000\nO[1]{A:int}:\n  A:1\n\n");
