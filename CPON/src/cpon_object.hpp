@@ -420,7 +420,7 @@ private:
 	 * @param In_Hints 設定するヒント文字列
 	 * @return 設定されたヒント文字列
 	 */
-	std::string SetHints(_In_ const std::string_view In_Hints) noexcept { return m_BlockHints = std::string(In_Hints); }
+	std::string SetHints(_In_ const std::string_view In_Hints) { return m_BlockHints = std::string(In_Hints); }
 
 	/**
 	 * @brief オブジェクトのデータブロックの数を設定する関数

@@ -1,6 +1,7 @@
 // Internal helper: splits a block-hints string into key/type entries.
 #pragma once
 
+#include <cstddef>
 #include <string>
 #include <string_view>
 #include <vector>

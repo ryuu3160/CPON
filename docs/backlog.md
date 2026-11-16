@@ -10,3 +10,4 @@
 - `cpon_binary_helper::DeserializeValue` の配列6種類がほぼ同じ形。オブジェクトの読み込みも `cpon::Deserialize` と重複している。
 - ヘッダーの作法: ヘッダー内の無名名前空間(`TypeValue`)、`CPP_STD` マクロの漏れ、`<iostream>` の include と `std::cerr` への直接出力、`<sal.h>` を include せずに `_In_` を使っている。
 - `m_NestedLevel`(`cpon_block`、`cpon_object`)は、テキストの書き込みが深さを自分で数えるようになったら使われなくなる。消す。
+- `cpon::WriteToFile` が書き込み中に失敗(メモリ不足など)すると、途中まで書いたファイルが残る。一時ファイルに書いて置き換える。`CPON/src/cpon.cpp`(WriteToFile)(001)
