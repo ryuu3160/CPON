@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <charconv>
 #include <ostream>
+#include <set>
 #include <variant>
 #include <string>
 #include <string_view>
@@ -566,8 +567,12 @@ bool cpon_text_helper::WriteBlocks(_In_ std::ostream &In_Stream, _In_ const std:
 		const auto &Block = In_Object->m_Data[b];
 		if(!Block)
 			return false;
+		// A key repeated in the hints is written only once, or the file could not be read back
+		std::set<std::string> Written;
 		for(const auto &Hint : Hints)
 		{
+			if(!Written.insert(Hint.Key).second)
+				continue;
 			const auto Item = Block->m_BlockData.find(Hint.Key);
 			if(Item == Block->m_BlockData.end())
 				continue;

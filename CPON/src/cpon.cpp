@@ -132,8 +132,15 @@ bool cpon::WriteToFile(_In_ const std::string_view In_FilePath)
 		return false;
 	}
 
-	File << Text.str();
-	File.close();
+	try
+	{
+		File << Text.str();
+		File.close();
+	}
+	catch(...)
+	{
+		return false;
+	}
 	return !File.fail();
 }
 

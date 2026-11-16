@@ -1247,6 +1247,29 @@ namespace
 		Report(name, before, InOut_Ran);
 	}
 
+	// A hint with a repeated key must not write the item twice
+	void TestV2DuplicateHintKey(int &InOut_Ran)
+	{
+		const char *name = "v2-duplicate-hint-key";
+		const int before = g_Failures;
+		const char *path = "cpon_test_duphint.cpon";
+
+		cpon c;
+		if(!LoadText(name, "#ObjNum : 1\nO[1]{A:int,B:int,A:int}:\n  A:1\n  B:2\n\n", c))
+			Fail(name, "v1 text must be loaded");
+		else
+		{
+			cpon r;
+			if(!c.WriteToFile(path) || !r.LoadFromFile(path))
+				Fail(name, "written file must be read back");
+			else if(r.GetObjectCount() != 1 || r["O"].GetDataCount() != 1
+				|| !ChkVal<int>(*r["O"][0], "A", 1) || !ChkVal<int>(*r["O"][0], "B", 2))
+				Fail(name, "values changed after the round trip");
+			std::remove(path);
+		}
+		Report(name, before, InOut_Ran);
+	}
+
 } // namespace
 
 int main()
@@ -1294,6 +1317,7 @@ int main()
 
 	TestV2Rejected(ran);
 	TestV2WriteRefused(ran);
+	TestV2DuplicateHintKey(ran);
 
 	// Corrupt / truncated input must be rejected, not crash
 	{
