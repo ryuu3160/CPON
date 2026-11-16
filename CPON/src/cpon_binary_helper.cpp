@@ -9,6 +9,7 @@
 //	include
 // ==============================
 #include "cpon_binary_helper.hpp"
+#include "cpon_hints.hpp"
 #include "cpon_object.hpp"
 #include <fstream>
 #include <cstring>
@@ -447,10 +448,10 @@ void cpon_binary_helper::SerializeObject(_Inout_ std::vector<uint8_t> &InOut_Buf
 		cpon_binary::WriteU32(InOut_Buf, 0); // placeholder
 
 		uint32_t itemCount = 0;
-		const std::string &hints = In_Obj->GetBlockHints();
-		std::string hintWalk = hints;
+		std::vector<cpon_detail::HintEntry> hintEntries;
+		const bool useHints = cpon_detail::ParseHints(In_Obj->GetBlockHints(), hintEntries) && !hintEntries.empty();
 
-		if(hints.empty())
+		if(!useHints)
 		{
 			for(const auto &[key, val] : block->m_BlockData)
 			{
@@ -461,30 +462,13 @@ void cpon_binary_helper::SerializeObject(_Inout_ std::vector<uint8_t> &InOut_Buf
 		}
 		else
 		{
-			while(!hintWalk.empty())
+			for(const auto &entry : hintEntries)
 			{
-				std::string entry = hintWalk;
-				const size_t commaPos = hintWalk.find(',');
-				if(commaPos != std::string::npos)
-				{
-					entry = hintWalk.substr(0, commaPos);
-					hintWalk = hintWalk.substr(commaPos + 1);
-				}
-				else
-				{
-					hintWalk.clear();
-				}
-
-				const size_t colonPos = entry.find(':');
-				if(colonPos == std::string::npos)
-					continue;
-				const std::string key = entry.substr(0, colonPos);
-
-				auto itr = block->m_BlockData.find(key);
+				auto itr = block->m_BlockData.find(entry.Key);
 				if(itr == block->m_BlockData.end())
 					continue;
 
-				cpon_binary::WriteShortString(InOut_Buf, key);
+				cpon_binary::WriteShortString(InOut_Buf, entry.Key);
 				cpon_binary::SerializeDataItem(InOut_Buf, itr->second);
 				++itemCount;
 			}
