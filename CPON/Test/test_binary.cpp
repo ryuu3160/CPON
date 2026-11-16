@@ -1157,6 +1157,10 @@ namespace
 		ExpectRejected("v2-rej-nested-separator-missing", H + "O[1]{N:object,After:int}:\n  N:[2]{X:int}:\n    X:1\n  After:9\n\n");
 		ExpectRejected("v2-rej-nested-bad-header", H + "O[1]{N:object}:\n  N:[1]{X:int}\n    X:1\n\n");
 		ExpectRejected("v2-rej-nested-not-header", H + "O[1]{N:object}:\n  N:5\n\n");
+		ExpectRejected("v2-rej-unknown-type", H + "O[0]{A:foo}:\n\n");
+		ExpectRejected("v2-rej-unknown-type-unused", H + "O[1]{A:foo,B:int}:\n  B:1\n\n");
+		ExpectRejected("v2-rej-array-of-array", H + "O[0]{A:array<array<int>>}:\n\n");
+		ExpectRejected("v2-rej-array-of-object", H + "O[0]{A:array<object>}:\n\n");
 
 		// numbers and bool
 		ExpectRejected("v2-rej-int-trailing", H + "O[1]{A:int}:\n  A:12x\n\n");

@@ -183,6 +183,23 @@ namespace
 		return true;
 	}
 
+	bool IsScalarTypeV2(std::string_view In_Type)
+	{
+		return In_Type == "string" || In_Type == "int" || In_Type == "uint"
+			|| In_Type == "float" || In_Type == "double" || In_Type == "bool";
+	}
+
+	// Accepts the scalar types, "object", and "array<scalar>".
+	bool IsKnownTypeV2(std::string_view In_Type)
+	{
+		if(IsScalarTypeV2(In_Type) || In_Type == "object")
+			return true;
+		constexpr std::string_view kArrayOpen = "array<";
+		if(In_Type.size() > kArrayOpen.size() && In_Type.starts_with(kArrayOpen) && In_Type.ends_with('>'))
+			return IsScalarTypeV2(In_Type.substr(kArrayOpen.size(), In_Type.size() - kArrayOpen.size() - 1));
+		return false;
+	}
+
 	// Parses "<prefix>[count]{hints}:" (the whole text). Prefix is the text before the first '['.
 	bool ParseHeaderV2(std::string_view In_Line, HeaderInfo &Out_Info)
 	{
@@ -203,7 +220,14 @@ namespace
 		Out_Info.Prefix = In_Line.substr(0, Open);
 		Out_Info.BlockCount = Count;
 		Out_Info.Hints = Rest.substr(1, Rest.size() - 3);
-		return cpon_detail::ParseHints(Out_Info.Hints, Out_Info.Entries);
+		if(!cpon_detail::ParseHints(Out_Info.Hints, Out_Info.Entries))
+			return false;
+		for(const auto &Entry : Out_Info.Entries)
+		{
+			if(!IsKnownTypeV2(Entry.Type))
+				return false;
+		}
+		return true;
 	}
 
 	int HexDigit(char In_Char)
