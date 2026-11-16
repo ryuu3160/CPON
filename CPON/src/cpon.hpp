@@ -290,11 +290,9 @@ private:
 	template<typename T>
 	std::string ToStr(_In_ T In_Value)
 	{
-		std::string Str;
-		Str.resize(std::numeric_limits<size_t>::digits10 + 2);
-		auto res = std::to_chars(Str.data(), Str.data() + Str.size(), In_Value);
-		Str.resize(res.ptr - Str.data());
-		return Str;
+		char Buf[32]; // enough for any integer and for the shortest float/double text
+		const auto res = std::to_chars(Buf, Buf + sizeof(Buf), In_Value);
+		return std::string(Buf, res.ptr);
 	}
 
 	/**
@@ -306,7 +304,7 @@ private:
 	template<typename T>
 	T FromStr(_In_ const std::string_view In_Str)
 	{
-		T Value;
+		T Value{}; // stays 0 when the text cannot be parsed
 		std::from_chars(In_Str.data(), In_Str.data() + In_Str.size(), Value);
 		return Value;
 	}

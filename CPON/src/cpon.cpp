@@ -30,6 +30,24 @@ namespace
 			return std::string::npos;
 		return Start;
 	}
+
+	// True when the file name part of In_Path (after the last '/' or '\') contains a '.'
+	// (a '.' in a directory name, as in "./save" or "dir.v2/save", is not an extension)
+	bool HasExtension(const std::string &In_Path)
+	{
+		const size_t Sep = In_Path.find_last_of("/\\");
+		const size_t Dot = In_Path.find_last_of('.');
+		return Dot != std::string::npos && (Sep == std::string::npos || Dot > Sep);
+	}
+
+	// Shortest text that reads back as the same value (operator<< keeps only 6 significant digits)
+	template<typename T>
+	std::string FloatToStr(T In_Value)
+	{
+		char Buf[32];
+		const auto Res = std::to_chars(Buf, Buf + sizeof(Buf), In_Value);
+		return std::string(Buf, Res.ptr);
+	}
 }
 
 cpon_object &cpon::operator[](_In_ int In_Index)
@@ -108,7 +126,7 @@ bool cpon::WriteToFile(_In_ const std::string_view In_FilePath)
 {
 	std::string PathStr = std::string(In_FilePath);
 
-	if(IsStringNpos(PathStr.find_last_of('.')))
+	if(!HasExtension(PathStr))
 		PathStr += ".cpon";
 
 	std::ofstream File(std::string(PathStr), std::ios::out | std::ios::trunc);
@@ -140,7 +158,7 @@ bool cpon::LoadFromFile(_In_ const std::string_view In_FilePath)
 {
 	std::string PathStr = std::string(In_FilePath);
 
-	if(IsStringNpos(PathStr.find_last_of('.')))
+	if(!HasExtension(PathStr))
 		PathStr += ".cpon";
 
 	std::ifstream File(std::string(PathStr), std::ios::in);
@@ -282,7 +300,7 @@ bool cpon::Deserialize(_In_ std::span<const uint8_t> In_Data)
 	// 圧縮データを取り出す
 	// ヘッダサイズ: magic(4) + version(1) + seed(4) + originalSize(4) + compressedSize(4) = 17B
 	constexpr size_t HeaderSize = 4 + 1 + 4 + 4 + 4;
-	if(In_Data.size() < HeaderSize + compressedSize)
+	if(In_Data.size() - HeaderSize < compressedSize) // the header was read above, so size() >= HeaderSize; no overflow on Win32
 	{
 		std::cerr << "ファイルサイズが不正です。" << std::endl;
 		return false;
@@ -347,7 +365,7 @@ bool cpon::Deserialize(_In_ std::span<const uint8_t> In_Data)
 bool cpon::WriteToBinaryFile(_In_ std::string_view In_FilePath)
 {
 	std::string path(In_FilePath);
-	if(path.find_last_of('.') == std::string::npos)
+	if(!HasExtension(path))
 		path += ".cponb";
  
 	const auto buf = Serialize();
@@ -364,7 +382,7 @@ bool cpon::WriteToBinaryFile(_In_ std::string_view In_FilePath)
 bool cpon::LoadFromBinaryFile(_In_ std::string_view In_FilePath)
 {
 	std::string path(In_FilePath);
-	if(path.find_last_of('.') == std::string::npos)
+	if(!HasExtension(path))
 		path += ".cponb";
 
 	std::ifstream file(path, std::ios::in | std::ios::binary | std::ios::ate);
@@ -464,9 +482,9 @@ void cpon::WriteDataBlockValue(_In_ std::ofstream &In_File, _In_ const cpon_bloc
 	else if (std::holds_alternative<unsigned int>(In_Value))
 		In_File << std::get<unsigned int>(In_Value);
 	else if (std::holds_alternative<float>(In_Value))
-		In_File << std::get<float>(In_Value);
+		In_File << FloatToStr(std::get<float>(In_Value));
 	else if (std::holds_alternative<double>(In_Value))
-		In_File << std::get<double>(In_Value);
+		In_File << FloatToStr(std::get<double>(In_Value));
 	else if (std::holds_alternative<bool>(In_Value))
 		In_File << (std::get<bool>(In_Value) ? "true" : "false");
 	In_File << "\n";
@@ -622,7 +640,7 @@ void cpon::ReadHintInfo(_In_ const std::string_view In_Hint, _Out_ std::string &
 void cpon::ReadBlockValue(_In_ std::shared_ptr<cpon_block> In_Block, _In_ const std::string_view In_Line, _In_ const std::string_view In_HintID, _In_ const std::string_view In_HintType)
 {
 	if (In_HintType == "string")
-		In_Block->SetValue(In_HintID, In_Line.data());
+		In_Block->SetValue(In_HintID, std::string(In_Line));
 	else if (In_HintType == "int")
 		In_Block->SetValue(In_HintID, FromStr<int>(In_Line));
 	else if (In_HintType == "uint")

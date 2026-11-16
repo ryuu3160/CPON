@@ -14,7 +14,7 @@
 
 #include <cstdio>
 #include <cstdint>
-#include <cstdio>
+#include <filesystem>
 #include <functional>
 #include <random>
 #include <string>
@@ -229,6 +229,67 @@ namespace
 		return cases;
 	}
 
+	// Floating-point values must survive the text format exactly (shortest round-trip text, not 6 digits)
+	std::vector<Case> MakeFloatTextCases()
+	{
+		std::vector<Case> cases;
+		cases.push_back(Case{ "text-float-double-precision",
+			[](cpon &c)
+			{
+				auto b = c.CreateObject("T")->CreateDataBlock();
+				b->SetValue("F", 0.123456789f);
+				b->SetValue("D", 3.141592653589793);
+				b->SetValue("Tiny", -2.2250738585072014e-308);
+			},
+			[](cpon &c)
+			{
+				return ChkVal<float>(*c["T"][0], "F", 0.123456789f) && ChkVal<double>(*c["T"][0], "D", 3.141592653589793) &&
+					ChkVal<double>(*c["T"][0], "Tiny", -2.2250738585072014e-308);
+			} });
+		// 24 characters each: the longest text a double can need
+		cases.push_back(Case{ "text-array-long-double",
+			[](cpon &c)
+			{
+				c.CreateObject("T")->CreateDataBlock()->SetArray("A", std::vector<double>{-2.2250738585072014e-308, -1.2345678901234567e-100});
+				c["T"][0]->SetArray("AF", std::vector<float>{-1.17549435e-38f, 0.123456789f});
+			},
+			[](cpon &c)
+			{
+				return ChkArr<double>(*c["T"][0], "A", {-2.2250738585072014e-308, -1.2345678901234567e-100}) &&
+					ChkArr<float>(*c["T"][0], "AF", {-1.17549435e-38f, 0.123456789f});
+			} });
+		return cases;
+	}
+
+	// A '.' in a directory name is not a file extension: the default extension must still be added
+	void TestDefaultExtension(int &InOut_Ran)
+	{
+		namespace fs = std::filesystem;
+		const fs::path dir = "cpon_test_dir.v2";
+		fs::create_directories(dir);
+
+		cpon src;
+		src.CreateObject("Obj")->CreateDataBlock()->SetValue("Name", std::string("abc"));
+
+		cpon text, binary;
+		if(!src.WriteToFile("cpon_test_dir.v2/save") || !fs::exists(dir / "save.cpon"))
+			Fail("default-extension", "WriteToFile did not add .cpon");
+		else if(!text.LoadFromFile("cpon_test_dir.v2/save") || !ChkVal<std::string>(*text["Obj"][0], "Name", "abc"))
+			Fail("default-extension", "LoadFromFile did not add .cpon");
+		if(!src.WriteToBinaryFile("cpon_test_dir.v2/save") || !fs::exists(dir / "save.cponb"))
+			Fail("default-extension", "WriteToBinaryFile did not add .cponb");
+		else if(!binary.LoadFromBinaryFile("cpon_test_dir.v2/save") || !ChkVal<std::string>(*binary["Obj"][0], "Name", "abc"))
+			Fail("default-extension", "LoadFromBinaryFile did not add .cponb");
+		// an explicit extension is kept as is
+		if(!src.WriteToFile("cpon_test_dir.v2/keep.txt") || !fs::exists(dir / "keep.txt"))
+			Fail("default-extension", "WriteToFile changed an explicit extension");
+
+		std::error_code ec;
+		fs::remove_all(dir, ec);
+		++InOut_Ran;
+		std::printf("  %-28s %s\n", "default-extension", "checked");
+	}
+
 	// Single object "Obj" / single block / single string value "Name"
 	Case StringCase(const char *name, const std::string &value)
 	{
@@ -411,7 +472,11 @@ int main()
 		std::fflush(stdout);
 	}
 
-	for(const auto &c : MakeKeyCases())
+	std::vector<Case> textCases = MakeKeyCases();
+	for(auto &c : MakeFloatTextCases())
+		textCases.push_back(std::move(c));
+
+	for(const auto &c : textCases)
 	{
 		const int before = g_Failures;
 		RoundTripMemory(c);
@@ -421,6 +486,8 @@ int main()
 		std::printf("  %-28s %s\n", c.name, g_Failures == before ? "ok" : "FAILED");
 		std::fflush(stdout);
 	}
+
+	TestDefaultExtension(ran);
 
 	// Corrupt / truncated input must be rejected, not crash
 	{

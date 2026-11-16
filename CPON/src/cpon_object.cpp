@@ -77,7 +77,7 @@ cpon_block::Object cpon_block::GetObject(_In_ const std::string_view In_Key)
 	}
 }
 
-void cpon_block::CreateHints(_In_ const std::string_view In_TagName, _In_ DataItem In_Data)
+void cpon_block::CreateHints(_In_ const std::string_view In_TagName, _In_ const DataItem &In_Data)
 {
 	// Match the whole key: "Key:" must start the hints or follow a comma ("ExitTime:" must not match "HasExitTime:")
 	if (("," + m_BlockHintsRef).find("," + std::string(In_TagName) + ":") != std::string::npos)
@@ -105,7 +105,7 @@ void cpon_block::CreateHints(_In_ const std::string_view In_TagName, _In_ DataIt
 	}
 	else if (std::holds_alternative<cpon_block::Array>(In_Data))
 	{
-		auto array = std::get<cpon_block::Array>(In_Data);
+		const auto &array = std::get<cpon_block::Array>(In_Data);
 
 		m_BlockHintsRef += "array";
 		

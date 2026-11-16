@@ -322,11 +322,9 @@ private:
 			}
 			else if constexpr(std::is_arithmetic_v<Elem>)
 			{
-				std::string string;
-				string.resize(std::numeric_limits<size_t>::digits10 + 2);
-				auto res = std::to_chars(string.data(), string.data() + string.size(), val);
-				string.resize(res.ptr - string.data());
-				return string;
+				char buf[32]; // enough for any integer and for the shortest float/double text
+				const auto res = std::to_chars(buf, buf + sizeof(buf), val);
+				return std::string(buf, res.ptr);
 			}
 			else
 			{
@@ -340,7 +338,7 @@ private:
 	 * @param In_TagName ヒントを作成するためのタグ名
 	 * @param In_Data ヒントに関連付けられるデータ項目
 	 */
-	void CreateHints(_In_ const std::string_view In_TagName, _In_ DataItem In_Data);
+	void CreateHints(_In_ const std::string_view In_TagName, _In_ const DataItem &In_Data);
 
 	/**
 	 * @brief バリアント配列が指定された型を保持しているかどうかを確認する関数
@@ -349,7 +347,7 @@ private:
 	 * @return 配列が指定された型を保持している場合はtrue、それ以外の場合はfalse
 	 */
 	template<TypeValue T>
-	bool VariantArrayCheckType(_In_ Array In_Array)
+	bool VariantArrayCheckType(_In_ const Array &In_Array)
 	{
 		if(std::holds_alternative<std::vector<T>>(In_Array))
 		{
