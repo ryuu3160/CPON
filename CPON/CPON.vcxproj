@@ -140,6 +140,7 @@
       </SubType>
     </ClCompile>
     <ClCompile Include="src\cpon_object.cpp" />
+    <ClCompile Include="src\cpon_text.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\cpon.hpp">
@@ -152,6 +153,7 @@
     </ClInclude>
     <ClInclude Include="src\cpon_object.hpp" />
     <ClInclude Include="src\cpon_hints.hpp" />
+    <ClInclude Include="src\cpon_text.hpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\CPON.nupkg\build\native\CPON.targets" />

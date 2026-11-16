@@ -201,68 +201,6 @@ private:
 	void WriteDataBlockArray(_In_ std::ofstream &In_File, _In_ const cpon_block::Array &In_Array);
 
 	// ---------------------------------------------
-	// ファイルの読み込みに関するヘルパー関数
-	// ---------------------------------------------
-
-	/**
-	 * @brief ファイルからオブジェクトを読み取る関数
-	 * @param In_File 読み取り元の入力ファイルストリームを表すstd::ifstreamへの参照
-	 * @param In_Line 処理する行の文字列ビュー
-	 * @param In_Object 読み取ったデータを格納するcpon_objectへの共有ポインタ
-	 * @param In_FilePath ファイルパスの文字列ビュー
-	 * @return オブジェクトの読み取りに成功した場合はtrue、それ以外の場合はfalse
-	 */
-	bool ReadObject(_In_ std::ifstream &In_File, _In_ std::string_view In_Line, _In_ std::shared_ptr<cpon_object> In_Object, _In_ std::string_view In_FilePath);
-
-	/**
-	 * @brief 行からオブジェクト名を読み取る関数
-	 * @param In_Line オブジェクト名を含む入力行の文字列ビュー
-	 * @return 読み取られたオブジェクト名をstd::stringとして返す
-	 */
-	std::string ReadObjectName(_In_ const std::string_view In_Line) const;
-
-	/**
-	 * @brief 行からオブジェクトデータの数を読み取る関数
-	 * @param In_Line オブジェクトデータの数を含む入力行の文字列ビュー
-	 * @return 読み取られたオブジェクトデータの数をint型で返す
-	 */
-	int ReadObjectDataCount(_In_ const std::string_view In_Line);
-
-	/**
-	 * @brief 行からブロック情報を読み取る関数
-	 * @param In_Line 解析する入力行の文字列ビュー
-	 * @param Out_BlockNum ブロック番号を受け取る出力パラメータへの参照
-	 * @param Out_BlockHints ブロックヒントを受け取る出力パラメータへの参照
-	 */
-	void ReadBlockInfo(_In_ const std::string_view In_Line, _Out_ int &Out_BlockNum, _Out_ std::string &Out_BlockHints);
-
-	/**
-	 * @brief ヒント情報を解析し、ヒントIDとヒントタイプを抽出する関数
-	 * @param In_Hint 解析するヒント情報を表す文字列ビュー
-	 * @param Out_HintID 抽出されたヒントIDの出力先
-	 * @param Out_HintType 抽出されたヒントタイプの出力先
-	 */
-	void ReadHintInfo(_In_ const std::string_view In_Hint, _Out_ std::string &Out_HintID, _Out_ std::string &Out_HintType);
-
-	/**
-	 * @brief ヒントIDとヒントタイプを使用して、行からブロックの値を読み取る関数
-	 * @param In_Block 値を読み取る対象のCPONブロックへの共有ポインター
-	 * @param In_Line 解析する行
-	 * @param In_HintID 値の識別子を示すヒントID
-	 * @param In_HintType 値の型を示すヒントタイプ
-	 */
-	void ReadBlockValue(_In_ std::shared_ptr<cpon_block> In_Block, _In_ const std::string_view In_Line, _In_ const std::string_view In_HintID, _In_ const std::string_view In_HintType);
-
-	/**
-	 * @brief ヒントIDとヒントタイプを使用して、行からブロックの配列を読み取る関数
-	 * @param In_Block 配列を読み取る対象のCPONブロックへの共有ポインター
-	 * @param In_Line 解析する行
-	 * @param In_HintID 配列の識別子を示すヒントID
-	 * @param In_HintType 配列の型を示すヒントタイプ
-	 */
-	void ReadBlockArray(_In_ std::shared_ptr<cpon_block> In_Block, _In_ const std::string_view In_Line, _In_ const std::string_view In_HintID, _In_ const std::string_view In_HintType);
-
-	// ---------------------------------------------
 	// 文字列処理に関するヘルパー関数
 	// ---------------------------------------------
 
@@ -273,13 +211,6 @@ private:
 	 * @return 指定された文字の出現回数
 	 */
 	int CountElement(_In_ const std::string_view In_Data, _In_ char In_CountTarget) const noexcept;
-
-	/**
-	 * @brief 型指定に基づいて配列を作成する関数
-	 * @param In_Type 作成する配列の型を指定する文字列ビュー
-	 * @return 指定された型に基づいて作成された配列
-	 */
-	cpon_block::Array CreateArrayByType(_In_ const std::string_view In_Type);
 
 	/**
 	 * @brief 値を文字列に変換する関数
@@ -293,20 +224,6 @@ private:
 		char Buf[32]; // enough for any integer and for the shortest float/double text
 		const auto res = std::to_chars(Buf, Buf + sizeof(Buf), In_Value);
 		return std::string(Buf, res.ptr);
-	}
-
-	/**
-	 * @brief 文字列を指定された型に変換する関数
-	 * @tparam T 変換先の型
-	 * @param In_Str 変換する文字列
-	 * @return 変換された値
-	 */
-	template<typename T>
-	T FromStr(_In_ const std::string_view In_Str)
-	{
-		T Value{}; // stays 0 when the text cannot be parsed
-		std::from_chars(In_Str.data(), In_Str.data() + In_Str.size(), Value);
-		return Value;
 	}
 
 private:

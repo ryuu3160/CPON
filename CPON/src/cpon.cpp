@@ -11,6 +11,7 @@
 // ==============================
 #include "cpon.hpp"
 #include "cpon_binary_helper.hpp"
+#include "cpon_text.hpp"
 #include <fstream>
 #include <filesystem>
 #include <iostream>
@@ -18,19 +19,6 @@
 
 namespace
 {
-	// Position of In_Key in a data line "<indent>Key:value", or npos when the line's key is not exactly In_Key
-	// (a substring match would read "ExitTime:" as "Time", or find a key name inside a value)
-	size_t FindLineKey(const std::string &In_Line, const std::string &In_Key)
-	{
-		const size_t Start = In_Line.find_first_not_of(" \t");
-		if(Start == std::string::npos)
-			return std::string::npos;
-		const size_t Colon = In_Line.find(':', Start);
-		if(Colon == std::string::npos || In_Line.compare(Start, Colon - Start, In_Key) != 0)
-			return std::string::npos;
-		return Start;
-	}
-
 	// True when the file name part of In_Path (after the last '/' or '\') contains a '.'
 	// (a '.' in a directory name, as in "./save" or "dir.v2/save", is not an extension)
 	bool HasExtension(const std::string &In_Path)
@@ -168,52 +156,25 @@ bool cpon::LoadFromFile(_In_ const std::string_view In_FilePath)
 		return false;
 	}
 
-	// 現在保持しているオブジェクトを削除
-	ClearObjectsData();
-
-	std::string line;
-
-	// ヘッダの取得
-	std::getline(File, line);
-	if (IsStringNpos(line.find("#ObjNum : ")))
+	// Read into a temporary: the current data is replaced only when the whole file was read
+	std::vector<std::shared_ptr<cpon_object>> Objects;
+	bool Loaded = false;
+	try
 	{
-		std::cerr << "ヘッダ情報が読み取れませんでした。" << PathStr << std::endl;
+		Loaded = cpon_text_helper::Read(File, Objects);
+	}
+	catch(...)
+	{
+		Loaded = false;
+	}
+	if(!Loaded)
+	{
+		std::cerr << "データ形式が不正です : " << PathStr << std::endl;
 		return false;
 	}
-	m_FileHeader = line;
 
-	// オブジェクトの個数を取得
-	int ObjCount;
-	ObjCount = ReadObjectDataCount(m_FileHeader);
-
-	for (int i = 0; i < ObjCount; ++i)
-	{
-		if(std::getline(File, line))
-		{
-			// オブジェクトヘッダの読み取り
-			if(IsStringNpos(line.find("}:")))
-			{
-				std::cerr << "データ形式が不正です : " << PathStr << std::endl;
-				return false;
-			}
-
-			std::string ObjName;
-			ObjName = ReadObjectName(line);
-
-			// オブジェクト作成
-			auto Obj = CreateObject(ObjName);
-
-			if(!ReadObject(File, line, Obj, PathStr))
-				return false;
-		}
-		else
-		{
-			std::cerr << "データを読み取れませんでした : " << PathStr << std::endl;
-			return false;
-		}
-	}
-
-	File.close();
+	m_Objects = std::move(Objects);
+	m_FileHeader.clear();
 	return true;
 }
 
@@ -512,201 +473,6 @@ void cpon::WriteDataBlockArray(_In_ std::ofstream &In_File, _In_ const cpon_bloc
 	In_File << "\n";
 }
 
-bool cpon::ReadObject(_In_ std::ifstream &In_File, _In_ std::string_view In_Line, _In_ std::shared_ptr<cpon_object> In_Object, _In_ std::string_view In_FilePath)
-{
-	std::string line = std::string(In_Line);
-
-	std::string BlockHints;
-	int BlockNum = 0;
-	int BlockDataNum = 0;
-
-	ReadBlockInfo(line, BlockNum, BlockHints);
-	BlockDataNum = CountElement(BlockHints, ':');
-
-	// オブジェクトデータの読み取り
-	for(int BlockCount = 0; BlockCount < BlockNum; ++BlockCount)
-	{
-		// ブロックの作成
-		auto block = In_Object->CreateDataBlock();
-		std::string BlockHint = BlockHints;
-
-		// ブロックデータの読み取り
-		for(int DataCount = 0; DataCount < BlockDataNum; ++DataCount)
-		{
-			std::string HintID;
-			std::string HintType;
-			ReadHintInfo(BlockHint, HintID, HintType);
-
-			if(std::getline(In_File, line))
-			{
-				auto IDPos = FindLineKey(line, HintID);
-
-				// 空行の場合はスキップ
-				if(line.empty())
-					continue;
-
-				// データが存在しないので、ヒントを更新して再検索
-				if(IsStringNpos(IDPos))
-				{
-					++DataCount;
-					for(; DataCount < BlockDataNum; ++DataCount)
-					{
-						BlockHint = BlockHint.erase(0, BlockHint.find(",") + 1);
-						ReadHintInfo(BlockHint, HintID, HintType);
-						IDPos = FindLineKey(line, HintID);
-						if(!IsStringNpos(IDPos))
-							break;
-					}
-					// 最後まで見つからなかった場合、異常終了
-					if(IsStringNpos(IDPos))
-					{
-						std::cerr << "データを読み取れませんでした : " << In_FilePath << std::endl;
-						return false;
-					}
-				}
-
-				line = line.erase(0, IDPos + HintID.size() + 1);
-
-				if(!IsStringNpos(HintType.find("array<")))
-				{
-					ReadBlockArray(block, line, HintID, HintType);
-				}
-				else if(!IsStringNpos(HintType.find("object")))
-				{
-					auto Obj = block->CreateObject(HintID);
-					// オブジェクト型の読み取り
-					if(!ReadObject(In_File,line, Obj, In_FilePath))
-						return false;
-				}
-				else
-				{
-					ReadBlockValue(block, line, HintID, HintType);
-				}
-			}
-			else
-			{
-				std::cerr << "データを読み取れませんでした : " << In_FilePath << std::endl;
-				return false;
-			}
-			BlockHint = BlockHint.erase(0, BlockHint.find(",") + 1);
-		}
-		if(In_Object->m_NestedLevel == 0)
-			std::getline(In_File, line); // 空白行を飛ばすために読み取る
-	}
-	return true;
-}
-
-std::string cpon::ReadObjectName(_In_ const std::string_view In_Line) const
-{
-	std::string Line = std::string(In_Line);
-	std::string ObjName = Line;
-	return ObjName.erase(ObjName.find("["));
-}
-
-int cpon::ReadObjectDataCount(_In_ const std::string_view In_Line)
-{
-	int ObjCount;
-	std::string NumStr = std::string(In_Line);
-	NumStr = NumStr.erase(0, NumStr.find(":") + 2);
-	ObjCount = FromStr<int>(NumStr);
-	return ObjCount;
-}
-
-void cpon::ReadBlockInfo(_In_ const std::string_view In_Line, _Out_ int &Out_BlockNum, _Out_ std::string &Out_BlockHints)
-{
-	std::string Line = std::string(In_Line);
-	std::string BlockNumStr;
-	std::string BlockHints;
-	BlockNumStr = Line.erase(0, Line.find("[") + 1);
-	BlockNumStr = BlockNumStr.erase(BlockNumStr.find("]"));
-	Out_BlockNum = FromStr<int>(BlockNumStr);
-	BlockHints = Line.erase(0, Line.find("{") + 1);
-	Out_BlockHints = BlockHints.erase(Line.find("}"));
-}
-
-void cpon::ReadHintInfo(_In_ const std::string_view In_Hint, _Out_ std::string &Out_HintID, _Out_ std::string &Out_HintType)
-{
-	std::string Hint = std::string(In_Hint);
-	std::string HintID;
-	std::string HintType;
-	auto CommaPos = Hint.find(",");
-	if (!IsStringNpos(CommaPos))
-		Hint = Hint.erase(CommaPos);
-	HintID = HintType = Hint;
-	Out_HintID = HintID.erase(HintID.find(":"));
-	Out_HintType = HintType.erase(0, HintType.find(":") + 1);
-}
-
-void cpon::ReadBlockValue(_In_ std::shared_ptr<cpon_block> In_Block, _In_ const std::string_view In_Line, _In_ const std::string_view In_HintID, _In_ const std::string_view In_HintType)
-{
-	if (In_HintType == "string")
-		In_Block->SetValue(In_HintID, std::string(In_Line));
-	else if (In_HintType == "int")
-		In_Block->SetValue(In_HintID, FromStr<int>(In_Line));
-	else if (In_HintType == "uint")
-		In_Block->SetValue(In_HintID, FromStr<unsigned int>(In_Line));
-	else if (In_HintType == "float")
-		In_Block->SetValue(In_HintID, FromStr<float>(In_Line));
-	else if (In_HintType == "double")
-		In_Block->SetValue(In_HintID, FromStr<double>(In_Line));
-	else if (In_HintType == "bool")
-	{
-		if (!IsStringNpos(In_Line.find("true")))
-			In_Block->SetValue(In_HintID, true);
-		else
-			In_Block->SetValue(In_HintID, false);
-	}
-}
-
-void cpon::ReadBlockArray(_In_ std::shared_ptr<cpon_block> In_Block, _In_ const std::string_view In_Line, _In_ const std::string_view In_HintID, _In_ const std::string_view In_HintType)
-{
-	std::string Line = std::string(In_Line);
-	std::string ArrayType = std::string(In_HintType);
-	std::string ArrayCountStr = Line.erase(0, Line.find("[") + 1);
-	std::string ArrayValues = Line.erase(0, Line.find("]") + 1);
-	int ArrayCount;
-	ArrayType = ArrayType.erase(0, ArrayType.find("<"));
-	ArrayCountStr = ArrayCountStr.erase(ArrayCountStr.find("]"));
-	ArrayCount = FromStr<int>(ArrayCountStr);
-
-	cpon_block::Array array = CreateArrayByType(ArrayType);
-	for (int i = 0; i < ArrayCount; ++i)
-	{
-		std::string ArrayValue = ArrayValues;
-		auto CommaPos = ArrayValue.find(",");
-
-		if (!IsStringNpos(CommaPos))
-			ArrayValue = ArrayValue.erase(CommaPos);
-
-		if (ArrayValue[0] == ' ')
-			ArrayValue = ArrayValue.erase(0, 1);
-
-		if (ArrayType == "<string>")
-			std::get<std::vector<std::string>>(array).push_back(ArrayValue);
-		else if (ArrayType == "<int>")
-			std::get<std::vector<int>>(array).push_back(FromStr<int>(ArrayValue));
-		else if (ArrayType == "<uint>")
-			std::get<std::vector<unsigned int>>(array).push_back(FromStr<unsigned int>(ArrayValue));
-		else if (ArrayType == "<float>")
-			std::get<std::vector<float>>(array).push_back(FromStr<float>(ArrayValue));
-		else if (ArrayType == "<double>")
-			std::get<std::vector<double>>(array).push_back(FromStr<double>(ArrayValue));
-		else if (ArrayType == "<bool>")
-		{
-			bool boolian = false;
-			if (!IsStringNpos(ArrayValue.find("true")))
-				boolian = true;
-			else
-				boolian = false;
-			std::get<std::vector<bool>>(array).push_back(boolian);
-		}
-
-		ArrayValues = ArrayValues.erase(0, CommaPos + 1);
-	}
-
-	In_Block->SetArray(In_HintID, array);
-}
-
 int cpon::CountElement(_In_ const std::string_view In_Data, _In_ char In_CountTarget) const noexcept
 {
 	if (In_Data.empty())
@@ -718,21 +484,4 @@ int cpon::CountElement(_In_ const std::string_view In_Data, _In_ char In_CountTa
 			++Count;
 	}
 	return Count;
-}
-
-cpon_block::Array cpon::CreateArrayByType(_In_ const std::string_view In_Type)
-{
-	if(In_Type == "<string>")
-		return cpon_block::Array(std::vector<std::string>{});
-	 else if(In_Type == "<int>")
-		return cpon_block::Array(std::vector<int>{});
-	 else if(In_Type == "<uint>")
-		return cpon_block::Array(std::vector<unsigned int>{});
-	 else if(In_Type == "<float>")
-		return cpon_block::Array(std::vector<float>{});
-	 else if(In_Type == "<double>")
-		return cpon_block::Array(std::vector<double>{});
-	 else if(In_Type == "<bool>")
-		return cpon_block::Array(std::vector<bool>{});
-	return cpon_block::Array(std::vector<std::string>{});
 }

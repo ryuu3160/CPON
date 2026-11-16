@@ -47,6 +47,7 @@ class cpon_block
 	friend class cpon;
 	friend class cpon_object;
 	friend class cpon_binary_helper;
+	friend class cpon_text_helper;
 public:
 	using DataValue = std::variant<std::string, int, unsigned int, float, double, bool>;
 	using Array = std::variant<std::vector<std::string>, std::vector<int>, std::vector<unsigned int>, std::vector<float>, std::vector<double>, std::vector<bool>>;
@@ -378,6 +379,7 @@ class cpon_object
 	friend class cpon;
 	friend class cpon_block;
 	friend class cpon_binary_helper;
+	friend class cpon_text_helper;
 public:
 	cpon_object(_In_ int In_NestedLevel = 0)
 		: m_NestedLevel(In_NestedLevel)

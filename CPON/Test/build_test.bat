@@ -10,9 +10,9 @@ call "C:\Program Files\Microsoft Visual Studio\18\Community\VC\Auxiliary\Build\v
 set "SRC=%~dp0..\src"
 
 echo === Debug x64 /MDd ===
-cl /nologo /std:c++20 /EHsc /permissive- /W3 /MDd /D_DEBUG /Od /I"%SRC%" /Fo"%OUT%\dbg\\" /Fe:"%OUT%\test_dbg.exe" "%~dp0test_binary.cpp" "%SRC%\cpon.cpp" "%SRC%\cpon_object.cpp" "%SRC%\cpon_binary_helper.cpp" || exit /b 1
+cl /nologo /std:c++20 /EHsc /permissive- /W3 /MDd /D_DEBUG /Od /I"%SRC%" /Fo"%OUT%\dbg\\" /Fe:"%OUT%\test_dbg.exe" "%~dp0test_binary.cpp" "%SRC%\cpon.cpp" "%SRC%\cpon_object.cpp" "%SRC%\cpon_binary_helper.cpp" "%SRC%\cpon_text.cpp" || exit /b 1
 echo === Release x64 /MD ===
-cl /nologo /std:c++20 /EHsc /permissive- /W3 /MD /DNDEBUG /O2 /I"%SRC%" /Fo"%OUT%\rel\\" /Fe:"%OUT%\test_rel.exe" "%~dp0test_binary.cpp" "%SRC%\cpon.cpp" "%SRC%\cpon_object.cpp" "%SRC%\cpon_binary_helper.cpp" || exit /b 1
+cl /nologo /std:c++20 /EHsc /permissive- /W3 /MD /DNDEBUG /O2 /I"%SRC%" /Fo"%OUT%\rel\\" /Fe:"%OUT%\test_rel.exe" "%~dp0test_binary.cpp" "%SRC%\cpon.cpp" "%SRC%\cpon_object.cpp" "%SRC%\cpon_binary_helper.cpp" "%SRC%\cpon_text.cpp" || exit /b 1
 
 pushd "%OUT%"
 echo === run Debug ===
