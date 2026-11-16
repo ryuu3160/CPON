@@ -16,6 +16,7 @@
 #include <filesystem>
 #include <iostream>
 #include <random>
+#include <sstream>
 
 namespace
 {
@@ -26,15 +27,6 @@ namespace
 		const size_t Sep = In_Path.find_last_of("/\\");
 		const size_t Dot = In_Path.find_last_of('.');
 		return Dot != std::string::npos && (Sep == std::string::npos || Dot > Sep);
-	}
-
-	// Shortest text that reads back as the same value (operator<< keeps only 6 significant digits)
-	template<typename T>
-	std::string FloatToStr(T In_Value)
-	{
-		char Buf[32];
-		const auto Res = std::to_chars(Buf, Buf + sizeof(Buf), In_Value);
-		return std::string(Buf, Res.ptr);
 	}
 }
 
@@ -107,7 +99,6 @@ void cpon::ClearObjectsData() noexcept
 		itr.reset();
 	}
 	m_Objects.clear();
-	m_FileHeader.clear();
 }
 
 bool cpon::WriteToFile(_In_ const std::string_view In_FilePath)
@@ -117,6 +108,23 @@ bool cpon::WriteToFile(_In_ const std::string_view In_FilePath)
 	if(!HasExtension(PathStr))
 		PathStr += ".cpon";
 
+	// Build the whole text first: nothing is written to the file when the data cannot be written
+	std::ostringstream Text;
+	bool Written = false;
+	try
+	{
+		Written = cpon_text_helper::Write(Text, m_Objects);
+	}
+	catch(...)
+	{
+		Written = false;
+	}
+	if(!Written)
+	{
+		std::cerr << "データを書き込めませんでした : " << PathStr << std::endl;
+		return false;
+	}
+
 	std::ofstream File(std::string(PathStr), std::ios::out | std::ios::trunc);
 	if (!File.is_open())
 	{
@@ -124,22 +132,9 @@ bool cpon::WriteToFile(_In_ const std::string_view In_FilePath)
 		return false;
 	}
 
-	CreateFileHeader();
-
-	File << m_FileHeader << '\n';
-
-	for (const auto &obj : m_Objects)
-	{
-		// オブジェクトヘッダの書き込み
-		WriteObjectHeader(File, obj);
-
-		// データブロックの書き込み
-		WriteDataBlocks(File, obj);
-
-		File << '\n';
-	}
+	File << Text.str();
 	File.close();
-	return true;
+	return !File.fail();
 }
 
 bool cpon::LoadFromFile(_In_ const std::string_view In_FilePath)
@@ -174,7 +169,6 @@ bool cpon::LoadFromFile(_In_ const std::string_view In_FilePath)
 	}
 
 	m_Objects = std::move(Objects);
-	m_FileHeader.clear();
 	return true;
 }
 
@@ -360,128 +354,4 @@ bool cpon::LoadFromBinaryFile(_In_ std::string_view In_FilePath)
 		return false;
 
 	return Deserialize(std::span<const uint8_t>(buf.data(), buf.size()));
-}
-
-// ---------------------------------------------
-// cponクラスの非公開関数の実装
-// ---------------------------------------------
-
-void cpon::CreateFileHeader()
-{
-	m_FileHeader.clear();
-	std::string Num;
-	Num = ToStr(m_Objects.size());
-	m_FileHeader = "#ObjNum : " + Num;
-}
-
-void cpon::WriteObjectHeader(_In_ std::ofstream &In_File, _In_ std::shared_ptr<cpon_object> In_Object)
-{
-	// ブロック内のオブジェクトはキーがオブジェクト名として描き込まれるため、名前の出力をスキップ
-	if(In_Object->m_NestedLevel == 0)
-		In_File << In_Object->GetObjectName();
-
-	In_File << "[" << In_Object->GetDataCount() << "]" << "{" << In_Object->GetHints() << "}:\n";
-}
-
-void cpon::WriteDataBlocks(_In_ std::ofstream &In_File, _In_ std::shared_ptr<cpon_object> In_Object)
-{
-	auto Blocks = In_Object->GetDataBlocks();
-	std::string Hints = In_Object->GetBlockHints();
-	int BlockDataCount = CountElement(Hints, ':');
-
-	for (size_t i = 0; i < Blocks.size();++i)
-	{
-		std::string Hint = Hints;
-		for (int j = 0; j < BlockDataCount; ++j)
-		{
-			std::string Key = Hint;
-			size_t pos = Key.find(",");
-			if(!IsStringNpos(pos))
-				Key = Key.erase(Key.find(","));
-			Key = Key.erase(Key.find(":"));
-
-			// ヒント情報を進める
-			pos = Hint.find(",");
-			if(!IsStringNpos(pos))
-				Hint = Hint.erase(0, Hint.find(",") + 1);
-
-			auto data = Blocks[i]->m_BlockData.find(Key);
-			if(data == Blocks[i]->m_BlockData.end())
-				continue;
-
-			for(int indent = 0; indent < Blocks[i]->m_NestedLevel; ++indent)
-				In_File << "  ";
-
-			In_File << data->first << ":";
-			if (std::holds_alternative<cpon_block::DataValue>(data->second))
-			{
-				const auto &value = std::get<cpon_block::DataValue>(data->second);
-				WriteDataBlockValue(In_File, value);
-			}
-			else if (std::holds_alternative<cpon_block::Array>(data->second))
-			{
-				const auto &array = std::get<cpon_block::Array>(data->second);
-				WriteDataBlockArray(In_File, array);
-			}
-			else if(std::holds_alternative<cpon_block::Object>(data->second))
-			{
-				WriteObjectHeader(In_File, std::get<cpon_block::Object>(data->second));
-				WriteDataBlocks(In_File, std::get<cpon_block::Object>(data->second));
-			}
-		}
-		if(i < Blocks.size() - 1)
-			In_File << "\n";
-	}
-}
-
-void cpon::WriteDataBlockValue(_In_ std::ofstream &In_File, _In_ const cpon_block::DataValue &In_Value)
-{
-	if (std::holds_alternative<std::string>(In_Value))
-		In_File << std::get<std::string>(In_Value);
-	else if (std::holds_alternative<int>(In_Value))
-		In_File << std::get<int>(In_Value);
-	else if (std::holds_alternative<unsigned int>(In_Value))
-		In_File << std::get<unsigned int>(In_Value);
-	else if (std::holds_alternative<float>(In_Value))
-		In_File << FloatToStr(std::get<float>(In_Value));
-	else if (std::holds_alternative<double>(In_Value))
-		In_File << FloatToStr(std::get<double>(In_Value));
-	else if (std::holds_alternative<bool>(In_Value))
-		In_File << (std::get<bool>(In_Value) ? "true" : "false");
-	In_File << "\n";
-}
-
-void cpon::WriteDataBlockArray(_In_ std::ofstream &In_File, _In_ const cpon_block::Array &In_Array)
-{
-	size_t ArraySize = std::visit([](auto &&arg) -> size_t {
-		return arg.size();
-		}, In_Array);
-
-	In_File << "[" << ArraySize << "]";
-	for (size_t i = 0; i < ArraySize; ++i)
-	{
-		auto opt = std::visit(cpon_block::GetElementAsStringVisitor{i}, In_Array);
-
-		if (!opt.has_value())
-			continue;
-		// 要素の書き込み
-		In_File << opt.value();
-		// 最後の要素でなければカンマを追加
-		if (i < ArraySize - 1)
-			In_File << ", ";
-	}
-	In_File << "\n";
-}
-
-int cpon::CountElement(_In_ const std::string_view In_Data, _In_ char In_CountTarget) const noexcept
-{
-	if (In_Data.empty())
-		return 0;
-	int Count = 0;
-	for (const auto &ch : In_Data)
-	{
-		if (ch == In_CountTarget)
-			++Count;
-	}
-	return Count;
 }

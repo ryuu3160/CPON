@@ -298,42 +298,6 @@ public:
 
 private:
 
-	// ブロックデータの要素を文字列として取得するためのビジター
-	struct GetElementAsStringVisitor
-	{
-		std::size_t idx;
-		template<typename Vec>
-		std::optional<std::string> operator()(Vec const &vec) const
-		{
-			using Elem = typename Vec::value_type;
-			if(idx >= vec.size())
-				return std::nullopt;
-			// vector<bool>のproxy等をElemに代入して扱うことで問題を回避
-			Elem val = vec[idx];
-
-			// std::string の場合はそのまま、bool は "true"/"false"、数値はstd::stringに変換
-			if constexpr(std::is_same_v<Elem, std::string>)
-			{
-				return val;
-			}
-			else if constexpr(std::is_same_v<Elem, bool>)
-			{
-				// bool の場合は true/false を文字列で返す
-				return val ? "true" : "false";
-			}
-			else if constexpr(std::is_arithmetic_v<Elem>)
-			{
-				char buf[32]; // enough for any integer and for the shortest float/double text
-				const auto res = std::to_chars(buf, buf + sizeof(buf), val);
-				return std::string(buf, res.ptr);
-			}
-			else
-			{
-				return std::nullopt;
-			}
-		}
-	};
-
 	/**
 	 * @brief タグ名とデータ項目に基づいてヒントを作成する関数
 	 * @param In_TagName ヒントを作成するためのタグ名
