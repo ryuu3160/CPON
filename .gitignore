@@ -365,3 +365,4 @@ FodyWeavers.xsd
 # NuGetのAPIキーは公開しない
 pack.bat
 push.bat
+.work/
